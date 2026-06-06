@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"git status && git branch --show-current && ls src/workers 2>/dev/null; ls src/lib/workers 2>/dev/null\",\"description\":\"Check repo state and existing worker directories\"}",
-  "error": "Exit code 1\nOn branch feat/v1-implementation\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   .omc/state/agent-replay-f14b8bcb-4e02-4a9b-8f67-e2184fbcf62e.jsonl\n\tmodified:   .omc/state/hud-stdin-cache.json\n\tmodified:   .omc/state/sessions/f14b8bcb-4e02-4a9b-8f67-e2184fbcf62e/mission-state.json\n\tmodified:   .omc/state/sessions/f14b8bcb-4e02-4a9b-8f67-e2184fbcf62e/pre-too...",
-  "timestamp": "2026-06-06T08:36:49.510Z",
-  "retry_count": 1
-}
