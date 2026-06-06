@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/useAppStore'
+import { CornerMarks } from '@/components/decor/CornerMarks'
+import { SpecLabel } from '@/components/decor/SpecLabel'
 
 const ASPECTS = [
-  { id: '1_1', ratio: 1 / 1 },
-  { id: '2_1', ratio: 2 / 1 },
-  { id: '1_2', ratio: 1 / 2 },
-  { id: 'free', ratio: null as number | null },
+  { id: '1_1', ratio: 1 / 1, glyph: '1∶1' },
+  { id: '2_1', ratio: 2 / 1, glyph: '2∶1' },
+  { id: '1_2', ratio: 1 / 2, glyph: '1∶2' },
+  { id: 'free', ratio: null as number | null, glyph: '∞' },
 ]
 
 export function CropStep() {
@@ -40,70 +42,93 @@ export function CropStep() {
   if (!image || !crop) return null
 
   const previewStyle: React.CSSProperties = {
-    width: 320,
-    height: 320,
+    aspectRatio: '1 / 1',
     backgroundImage: `url(${image.dataUrl})`,
     backgroundSize: 'contain',
     backgroundRepeat: 'no-repeat',
     backgroundPosition: 'center',
+    backgroundColor: 'var(--paper-2)',
     filter: `brightness(${1 + preprocess.brightness}) contrast(${1 + preprocess.contrast})`,
   }
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-6 md:grid-cols-2">
-      <div style={previewStyle} className="rounded border bg-slate-100" />
-      <div className="space-y-4">
+    <div className="grid gap-12 md:grid-cols-[1.1fr_1fr] animate-specimen-in">
+      <div>
+        <SpecLabel>SPEC №001 · ORIGINAL</SpecLabel>
+        <div className="relative mt-4 border border-ink bg-paper-2">
+          <CornerMarks inset={-1} size={14} />
+          <div style={previewStyle} />
+        </div>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-label text-ink-2">
+          {image.width} × {image.height} · {image.name}
+        </p>
+      </div>
+
+      <div className="space-y-10">
         <div>
-          <p className="text-sm font-medium">{t('crop.aspect')}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+          <SpecLabel>{t('crop.aspect')}</SpecLabel>
+          <div className="mt-4 grid grid-cols-4 gap-2">
             {ASPECTS.map((a) => (
               <button
                 key={a.id}
                 onClick={() => setAspect(a.id)}
-                className={`rounded border px-3 py-1 text-xs ${aspect === a.id ? 'bg-slate-900 text-white' : 'bg-white'}`}
+                className={`relative font-display text-xl py-3 border border-ink transition ${
+                  aspect === a.id ? 'bg-ink text-paper' : 'bg-paper hover:bg-paper-2'
+                }`}
               >
-                {t(`crop.aspect.${a.id}`)}
+                {a.glyph}
               </button>
             ))}
           </div>
         </div>
-        <div>
-          <label className="text-sm">
-            {t('crop.brightness')} ({preprocess.brightness.toFixed(2)})
-          </label>
-          <input
-            type="range"
-            min={-1}
-            max={1}
-            step={0.05}
-            value={preprocess.brightness}
-            onChange={(e) => setBrightness(parseFloat(e.target.value))}
-            className="w-full"
-          />
+
+        <div className="space-y-6">
+          <div>
+            <div className="flex items-baseline justify-between mb-3">
+              <SpecLabel>{t('crop.brightness')}</SpecLabel>
+              <span className="font-mono text-xs text-ink">
+                {preprocess.brightness >= 0 ? '+' : ''}
+                {preprocess.brightness.toFixed(2)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={-1}
+              max={1}
+              step={0.05}
+              value={preprocess.brightness}
+              onChange={(e) => setBrightness(parseFloat(e.target.value))}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-baseline justify-between mb-3">
+              <SpecLabel>{t('crop.contrast')}</SpecLabel>
+              <span className="font-mono text-xs text-ink">
+                {preprocess.contrast >= 0 ? '+' : ''}
+                {preprocess.contrast.toFixed(2)}
+              </span>
+            </div>
+            <input
+              type="range"
+              min={-1}
+              max={1}
+              step={0.05}
+              value={preprocess.contrast}
+              onChange={(e) => setContrast(parseFloat(e.target.value))}
+            />
+          </div>
         </div>
-        <div>
-          <label className="text-sm">
-            {t('crop.contrast')} ({preprocess.contrast.toFixed(2)})
-          </label>
-          <input
-            type="range"
-            min={-1}
-            max={1}
-            step={0.05}
-            value={preprocess.contrast}
-            onChange={(e) => setContrast(parseFloat(e.target.value))}
-            className="w-full"
-          />
-        </div>
+
         <button
           onClick={() => {
             setBrightness(0)
             setContrast(0)
             setAspect('1_1')
           }}
-          className="rounded border px-3 py-1 text-xs"
+          className="font-mono text-[10px] uppercase tracking-label text-mute hover:text-accent"
         >
-          {t('crop.reset')}
+          ↻ {t('crop.reset')}
         </button>
       </div>
     </div>
