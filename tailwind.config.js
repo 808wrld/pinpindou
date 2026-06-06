@@ -16,9 +16,9 @@ export default {
         ok: '#2A9D8F',
       },
       fontFamily: {
-        display: ['Fraunces', 'Source Han Serif SC', 'Noto Serif CJK SC', 'serif'],
-        sans: ['Manrope', 'PingFang SC', 'Source Han Sans SC', 'Noto Sans SC', 'sans-serif'],
-        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+        display: ['"Instrument Serif"', '"Source Han Serif SC"', '"Songti SC"', 'STSong', 'serif'],
+        sans: ['Geist', '"PingFang SC"', '"Source Han Sans SC"', '"Noto Sans SC"', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       boxShadow: {
         specimen: '0 1px 0 #1A1815, 0 0 0 1px #1A1815',
