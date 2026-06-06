@@ -21,17 +21,34 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* HEADER */}
       <header className="border-b border-ink px-6 py-5 md:px-12">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative h-9 w-9 border border-ink flex items-center justify-center bg-paper">
-              <span className="block h-3.5 w-3.5 rounded-full bg-accent border border-ink" />
-            </div>
-            <div>
-              <h1 className="font-display italic text-3xl leading-none tracking-tight">
-                pin<span className="text-accent not-italic">/</span>pin<span className="text-accent not-italic">/</span>dou
+          <a href="#/upload" className="group flex items-center gap-3.5">
+            {/* Brand mark: a 2×2 perler bead "specimen" — red / yellow / ink / blue */}
+            <svg viewBox="0 0 32 32" className="h-10 w-10 shrink-0" aria-hidden>
+              <rect
+                x="1"
+                y="1"
+                width="30"
+                height="30"
+                fill="#F7F1E3"
+                stroke="#1A1815"
+                strokeWidth="1.2"
+              />
+              <g strokeWidth="0.7" stroke="#1A1815">
+                <circle cx="11" cy="11" r="5" fill="#E63946" />
+                <circle cx="21" cy="11" r="5" fill="#F4C95B" />
+                <circle cx="11" cy="21" r="5" fill="#1A1815" />
+                <circle cx="21" cy="21" r="5" fill="#2F87C2" />
+              </g>
+            </svg>
+            <div className="leading-none">
+              <h1 className="font-display text-[28px] md:text-[32px] leading-none tracking-tight text-ink">
+                拼<span className="text-accent">拼</span>豆
               </h1>
-              <p className="font-display-body italic text-xs text-mute mt-1">{t('app.subtitle')}</p>
+              <p className="font-mono text-[9px] uppercase tracking-[0.42em] text-mute mt-2 ml-px">
+                pinpindou
+              </p>
             </div>
-          </div>
+          </a>
           <div className="flex items-center gap-5">
             <button
               onClick={() => i18n.changeLanguage(isZh ? 'en' : 'zh-CN')}
