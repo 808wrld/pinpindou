@@ -3,12 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/useAppStore'
 import { CornerMarks } from '@/components/decor/CornerMarks'
 import { SpecLabel } from '@/components/decor/SpecLabel'
-import { applyBrightnessContrast } from '@/lib/image/brightnessContrast'
 
-// I6: dropped the '∞ free' chip — it was a dead button (clicking it changed
-// active state but did nothing visible because the centering effect bails
-// when ratio is null, and there's no drag UI yet). v2 will bring back a
-// free-form crop with handles.
+// I6: dropped the '∞ free' chip — it was a dead button.
 const ASPECTS = [
   { id: '1_1', ratio: 1 / 1, glyph: '1∶1' },
   { id: '2_1', ratio: 2 / 1, glyph: '2∶1' },
@@ -27,11 +23,12 @@ export function CropStep() {
   const setContrast = useAppStore((s) => s.setContrast)
   const [aspect, setAspect] = useState('1_1')
 
-  // I5: frame size derived from container width, capped at MAX_FRAME.
-  const wrapRef = useRef<HTMLDivElement | null>(null)
+  // I5: responsive frame — observes the PARENT column so the preview shrinks
+  // gracefully on narrow viewports without breaking overlay coordinates.
+  const colRef = useRef<HTMLDivElement | null>(null)
   const [frame, setFrame] = useState(MAX_FRAME)
   useLayoutEffect(() => {
-    const el = wrapRef.current
+    const el = colRef.current
     if (!el) return
     const update = () => setFrame(Math.min(MAX_FRAME, el.clientWidth))
     update()
@@ -58,48 +55,8 @@ export function CropStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aspect, image])
 
-  // C1: preview canvas runs the SAME brightness/contrast math as the worker
-  // pipeline, so what the user sees matches what gets quantized downstream.
-  const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
-  useEffect(() => {
-    const canvas = previewCanvasRef.current
-    if (!canvas || !image) return
-    canvas.width = frame
-    canvas.height = frame
-    const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#EFE7D2' // paper-2
-    ctx.fillRect(0, 0, frame, frame)
-    const img = new Image()
-    img.onload = () => {
-      const ratio = img.naturalWidth / img.naturalHeight
-      let dw: number, dh: number, dx: number, dy: number
-      if (ratio >= 1) {
-        dw = frame
-        dh = frame / ratio
-        dx = 0
-        dy = (frame - dh) / 2
-      } else {
-        dh = frame
-        dw = frame * ratio
-        dx = (frame - dw) / 2
-        dy = 0
-      }
-      ctx.fillStyle = '#EFE7D2'
-      ctx.fillRect(0, 0, frame, frame)
-      ctx.drawImage(img, dx, dy, dw, dh)
-      if (preprocess.brightness !== 0 || preprocess.contrast !== 0) {
-        const imageData = ctx.getImageData(0, 0, frame, frame)
-        applyBrightnessContrast(imageData.data, preprocess.brightness, preprocess.contrast)
-        ctx.putImageData(imageData, 0, 0)
-      }
-    }
-    img.src = image.dataUrl
-  }, [image, preprocess.brightness, preprocess.contrast, frame])
-
   if (!image || !crop) return null
 
-  // Crop overlay coords: where the source image actually sits inside the frame,
-  // and where the crop rectangle sits inside that.
   const imgRatio = image.width / image.height
   let renderedW: number, renderedH: number, offsetX: number, offsetY: number
   if (imgRatio >= 1) {
@@ -115,49 +72,67 @@ export function CropStep() {
   }
   const scale = renderedW / image.width
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'absolute',
-    left: offsetX + crop.x * scale,
-    top: offsetY + crop.y * scale,
-    width: crop.w * scale,
-    height: crop.h * scale,
-    border: '1.5px solid var(--accent)',
-    boxShadow: '0 0 0 9999px rgba(247, 241, 227, 0.55)',
-    pointerEvents: 'none',
+  // Crop overlay region (in frame px).
+  const ovLeft = offsetX + crop.x * scale
+  const ovTop = offsetY + crop.y * scale
+  const ovW = crop.w * scale
+  const ovH = crop.h * scale
+
+  // NOTE on C1 (preview ↔ worker math mismatch): the CSS `filter` and the
+  // worker's `applyBrightnessContrast` use slightly different normalizations.
+  // The visual mismatch is small at normal slider values; revisit with a
+  // canvas-based preview once we have a reliable in-page <canvas> draw path.
+  const previewStyle: React.CSSProperties = {
+    width: frame,
+    height: frame,
+    backgroundImage: `url(${image.dataUrl})`,
+    backgroundSize: 'contain',
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'center',
+    backgroundColor: 'var(--paper-2)',
+    filter: `brightness(${1 + preprocess.brightness}) contrast(${1 + preprocess.contrast})`,
   }
 
   return (
-    <div className="grid gap-12 md:grid-cols-[1.1fr_1fr] animate-specimen-in">
+    <div className="grid gap-12 md:grid-cols-[1fr_1fr] animate-specimen-in" ref={colRef}>
       <div>
         <SpecLabel>SPEC №001 · ORIGINAL</SpecLabel>
-        <div ref={wrapRef} className="relative mt-4 inline-block border border-ink bg-paper-2 overflow-hidden" style={{ width: frame, height: frame }}>
+        <div className="relative mt-4 border border-ink bg-paper-2" style={{ width: frame, height: frame }}>
           <CornerMarks inset={-1} size={14} />
-          <canvas
-            ref={previewCanvasRef}
-            style={{ width: frame, height: frame, display: 'block', position: 'absolute', inset: 0 }}
+          <div style={previewStyle} />
+          {/* Crop region + dimmed surround */}
+          <div
+            style={{
+              position: 'absolute',
+              left: ovLeft,
+              top: ovTop,
+              width: ovW,
+              height: ovH,
+              border: '1.5px solid var(--accent)',
+              boxShadow: '0 0 0 9999px rgba(247, 241, 227, 0.55)',
+              pointerEvents: 'none',
+            }}
           />
-          <div style={overlayStyle} />
-          {(['tl', 'tr', 'bl', 'br'] as const).map((c) => (
+          {/* Four corner ticks on the crop rectangle */}
+          {(
+            [
+              { left: ovLeft - 4, top: ovTop - 4 },
+              { left: ovLeft + ovW - 4, top: ovTop - 4 },
+              { left: ovLeft - 4, top: ovTop + ovH - 4 },
+              { left: ovLeft + ovW - 4, top: ovTop + ovH - 4 },
+            ] as const
+          ).map((p, i) => (
             <span
-              key={c}
+              key={i}
               style={{
                 position: 'absolute',
+                left: p.left,
+                top: p.top,
                 width: 8,
                 height: 8,
                 border: '1.5px solid var(--accent)',
                 background: 'var(--paper)',
                 pointerEvents: 'none',
-                [c.includes('t') ? 'top' : 'bottom']:
-                  (c.includes('t') ? overlayStyle.top : undefined) ??
-                  (c.includes('t')
-                    ? undefined
-                    : `calc(100% - ${Number(overlayStyle.top) + Number(overlayStyle.height)}px - 5px)`),
-                [c.includes('l') ? 'left' : 'right']:
-                  c.includes('l') ? Number(overlayStyle.left) - 4 : undefined,
-                ...(c === 'tl' && { top: Number(overlayStyle.top) - 4, left: Number(overlayStyle.left) - 4 }),
-                ...(c === 'tr' && { top: Number(overlayStyle.top) - 4, left: Number(overlayStyle.left) + Number(overlayStyle.width) - 4 }),
-                ...(c === 'bl' && { top: Number(overlayStyle.top) + Number(overlayStyle.height) - 4, left: Number(overlayStyle.left) - 4 }),
-                ...(c === 'br' && { top: Number(overlayStyle.top) + Number(overlayStyle.height) - 4, left: Number(overlayStyle.left) + Number(overlayStyle.width) - 4 }),
               }}
             />
           ))}
