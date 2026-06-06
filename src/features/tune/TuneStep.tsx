@@ -115,7 +115,56 @@ export function TuneStep() {
           </div>
         </ControlGroup>
 
-        <ControlGroup label={t('tune.palette')}>
+        <ControlGroup
+          label={
+            <>
+              {t('tune.palette')}
+              <InfoTip label={isZh ? '调色板是什么？' : 'What is a palette?'}>
+                {isZh ? (
+                  <>
+                    <p className="mb-2">
+                      决定生成的图纸用哪一套<b>实体拼豆色号</b>。下图后照着 BOM 清单买这家
+                      的豆子就行。
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">漫游酱</b> · 国内淘宝主流，色号 M01–M30
+                      (v1 starter)。
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">Perler</b> · 北美 Perler Beads，30 色 starter。
+                    </p>
+                    <p>
+                      <b className="text-accent">Hama</b> · 欧洲 Hama Midi，30 色 starter。
+                    </p>
+                    <p className="mt-2 text-paper-3">
+                      不同品牌色号互不通用，决定了买什么就跟着图纸走。
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2">
+                      Picks which <b>physical bead brand</b> the pattern is matched to. After
+                      export, buy beads by the BOM from that brand.
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">Manyou</b> (漫游酱) · Chinese market, codes
+                      M01–M30 (v1 starter).
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">Perler</b> · North America, 30-color starter.
+                    </p>
+                    <p>
+                      <b className="text-accent">Hama</b> · Europe (Hama Midi), 30-color starter.
+                    </p>
+                    <p className="mt-2 text-paper-3">
+                      Bead codes are not interchangeable across brands.
+                    </p>
+                  </>
+                )}
+              </InfoTip>
+            </>
+          }
+        >
           <select
             value={tune.paletteId}
             onChange={(e) => setTune({ paletteId: e.target.value as (typeof PALETTE_IDS)[number] })}
@@ -129,7 +178,57 @@ export function TuneStep() {
           </select>
         </ControlGroup>
 
-        <ControlGroup label={`${t('tune.colorCap')} · ${cap}`}>
+        <ControlGroup
+          label={
+            <>
+              {t('tune.colorCap')} · {cap}
+              <InfoTip label={isZh ? '色数上限是什么？' : 'What is color cap?'}>
+                {isZh ? (
+                  <>
+                    <p className="mb-2">
+                      限制最终图纸用到的<b>不同颜色种类数</b>。
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">值越小</b> · 图纸越简笔，买的色种少、成本低，
+                      但细节会丢。适合小红书晒图。
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">值越大</b> · 还原越准，但可能很多颜色只用
+                      1–2 颗 —— 为了那 2 颗豆专门买一管不划算。
+                    </p>
+                    <p>
+                      <b className="text-accent">不限</b> · 用整个调色板。
+                    </p>
+                    <p className="mt-2 text-paper-3">
+                      算法用频次 top-N 选色，自动把次要的颜色合并到最近的留下的色。
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2">
+                      Caps how many <b>distinct colors</b> the final pattern can use.
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">Lower</b> · Simpler look, fewer bead packs to buy.
+                      Detail collapses; good for shareable patterns.
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">Higher</b> · Closer to source, but you may end up
+                      buying a whole pack of a color you only use twice.
+                    </p>
+                    <p>
+                      <b className="text-accent">Unlimited</b> · Uses the whole palette.
+                    </p>
+                    <p className="mt-2 text-paper-3">
+                      The algorithm keeps the top-N most-used colors and remaps the rest to the
+                      nearest kept color.
+                    </p>
+                  </>
+                )}
+              </InfoTip>
+            </>
+          }
+        >
           <input
             type="range"
             min={4}
