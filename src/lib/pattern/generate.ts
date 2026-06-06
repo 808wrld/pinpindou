@@ -47,7 +47,26 @@ export async function generatePattern(args: {
 
   const fullPaletteLab = buildLabArray(args.palette, args.palette.colors.map((_, i) => i))
   const paletteSize = args.palette.colors.length
-  const cap = args.colorCap && args.colorCap > 0 ? Math.min(args.colorCap, paletteSize) : paletteSize
+  const wantsCap = args.colorCap != null && args.colorCap > 0 && args.colorCap < paletteSize
+
+  // I1: Unlimited (colorCap === null OR cap >= palette size) — single pass over
+  // the FULL palette with the user's dither. Skip the preselect pass entirely.
+  // Doing pass 1 here would (a) waste ~30% CPU and (b) artificially restrict
+  // pass 2 to colors that the no-dither nearest-match happened to land on,
+  // which violates the "use the whole palette" contract of Unlimited.
+  if (!wantsCap) {
+    const q = await runQuantize({
+      pixels: pre.pixels,
+      width: pre.w,
+      height: pre.h,
+      paletteLab: fullPaletteLab,
+      ditherMode: args.ditherMode,
+    })
+    if (q.type === 'quantize:error') return { error: q.message }
+    return { cells: q.cells }
+  }
+
+  const cap = Math.min(args.colorCap!, paletteSize)
 
   // Keep an unowned copy of the preprocessed pixels for the second pass —
   // postMessage with transfer detaches the buffer after the first call.
@@ -63,18 +82,18 @@ export async function generatePattern(args: {
   })
   if (q1.type === 'quantize:error') return { error: q1.message }
 
-  // Optimization: if the cap covers everything AND user picked no dither,
-  // pass 1 already IS the answer.
-  if (cap >= paletteSize && args.ditherMode === 'none') {
-    return { cells: q1.cells }
-  }
-
   const counts = new Map<number, number>()
   for (const row of q1.cells) for (const c of row) counts.set(c, (counts.get(c) ?? 0) + 1)
   const topOrig = [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, cap)
     .map(([idx]) => idx)
+
+  // Fast-path: if the cap covers all observed colors AND user wants no dither,
+  // pass 1 IS the answer.
+  if (topOrig.length === counts.size && args.ditherMode === 'none') {
+    return { cells: q1.cells }
+  }
 
   // Pass 2: reduced palette + user's chosen dither.
   const reducedLab = buildLabArray(args.palette, topOrig)

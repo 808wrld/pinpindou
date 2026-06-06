@@ -19,6 +19,7 @@ export function runQuantize(req: Omit<QuantizeRequest, 'type' | 'id'>): Promise<
   const id = nextId++
   return new Promise(resolve => {
     pending.set(id, resolve)
+    // NOTE: req.pixels.buffer is TRANSFERRED to the worker; do not reuse after this call.
     w.postMessage({ type: 'quantize', id, ...req }, [req.pixels.buffer])
   })
 }
