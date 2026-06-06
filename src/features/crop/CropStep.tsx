@@ -59,14 +59,13 @@ export function CropStep() {
   if (!image || !crop) return null
 
   const imgRatio = image.width / image.height
-  let renderedW: number, renderedH: number, offsetX: number, offsetY: number
+  let renderedW: number, offsetX: number, offsetY: number
   if (imgRatio >= 1) {
     renderedW = frame
-    renderedH = frame / imgRatio
+    const renderedH = frame / imgRatio
     offsetX = 0
     offsetY = (frame - renderedH) / 2
   } else {
-    renderedH = frame
     renderedW = frame * imgRatio
     offsetX = (frame - renderedW) / 2
     offsetY = 0
