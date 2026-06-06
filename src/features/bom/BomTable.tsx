@@ -1,18 +1,27 @@
 import { useTranslation } from 'react-i18next'
 import type { Palette } from '@/lib/pattern/types'
 import { computeBomWithTotal } from './computeBom'
-import { SpecLabel } from '@/components/decor/SpecLabel'
+import { hexLuma } from '@/features/preview/PatternCanvas'
 
-export function BomTable({ cells, palette }: { cells: number[][]; palette: Palette }) {
+export function BomTable({
+  cells,
+  palette,
+  symbolMap,
+}: {
+  cells: number[][]
+  palette: Palette
+  symbolMap?: Map<number, string>
+}) {
   const { t, i18n } = useTranslation()
   const lang: 'zh-CN' | 'en' = i18n.language.startsWith('zh') ? 'zh-CN' : 'en'
   const { bom, total } = computeBomWithTotal(cells)
   return (
-    <div className="border border-ink bg-paper-2 p-5 md:p-6 relative">
-      <div className="flex items-center justify-between mb-4">
-        <SpecLabel>
+    <div>
+      <div className="flex items-baseline justify-between mb-3 px-1">
+        <p className="font-mono text-[10px] uppercase tracking-label text-ink-2 flex items-center gap-2">
+          <span className="inline-block w-3 h-px bg-ink-2" />
           {t('export.bom.title')} · {t('export.bom.total', { n: total })}
-        </SpecLabel>
+        </p>
         <button
           onClick={() => copyText(toText(bom, palette, lang))}
           className="font-mono text-[10px] uppercase tracking-label text-mute hover:text-accent"
@@ -21,32 +30,29 @@ export function BomTable({ cells, palette }: { cells: number[][]; palette: Palet
         </button>
       </div>
 
-      <div className="overflow-x-auto -mx-1">
-        <div className="inline-flex gap-1 px-1">
-          {bom.map((e) => {
-            const c = palette.colors[e.index]
-            return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+        {bom.map((e) => {
+          const c = palette.colors[e.index]
+          const letter = symbolMap?.get(e.index) ?? ''
+          const luma = hexLuma(c.hex)
+          return (
+            <div
+              key={e.index}
+              className="flex items-center gap-3 border border-rule bg-paper-2 px-3 py-2.5 hover:border-ink transition"
+            >
               <div
-                key={e.index}
-                className="flex flex-col items-stretch border border-ink bg-paper min-w-[64px]"
+                className="flex h-7 w-7 shrink-0 items-center justify-center border border-ink/30 font-mono text-xs font-bold"
+                style={{ background: c.hex, color: luma > 0.6 ? '#1d1a23' : '#fffaf1' }}
               >
-                <div className="h-12 border-b border-ink" style={{ background: c.hex }} />
-                <div className="px-2 py-1.5 text-center">
-                  <div className="font-mono text-[10px] text-ink leading-tight">{c.id}</div>
-                  <div className="font-display text-sm font-semibold leading-tight mt-0.5">
-                    ×{e.count}
-                  </div>
-                  <div
-                    className="font-mono text-[9px] text-mute leading-tight mt-0.5 truncate"
-                    title={c.name[lang]}
-                  >
-                    {c.name[lang]}
-                  </div>
-                </div>
+                {letter}
               </div>
-            )
-          })}
-        </div>
+              <div className="flex-1 truncate text-sm text-ink" title={c.name[lang]}>
+                {c.name[lang]}
+              </div>
+              <div className="font-mono text-sm font-semibold tabular-nums text-ink-2">{e.count}</div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
