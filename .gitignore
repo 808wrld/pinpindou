@@ -6,3 +6,6 @@ dist/
 !.env.example
 src/palettes/generated/
 .omc/
+test-results/
+playwright-report/
+e2e/fixtures/sample.png
