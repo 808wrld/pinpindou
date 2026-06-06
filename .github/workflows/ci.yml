@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --coverage
+      - run: npm run build
+      - name: Bundle size budget (main chunk gzip ≤ 150KB)
+        run: |
+          mainjs=$(ls dist/assets/index-*.js | head -n1)
+          gz=$(gzip -c "$mainjs" | wc -c)
+          echo "Main JS gzip size: $gz bytes"
+          test "$gz" -lt 153600 || (echo "Main bundle gzip exceeds 150KB"; exit 1)
+
+  e2e:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
