@@ -203,7 +203,7 @@ Output channels:
 |---|---|---|
 | ① Upload | Drag-drop zone + file picker + sample images ("no image? try this") | Accepts JPG/PNG/WebP, max 10 MB |
 | ② Crop | Image canvas + crop rectangle + preprocess sliders | Aspect ratio (1:1 default / 2:1 / 1:2 / free); brightness; contrast; reset |
-| ③ Tune | Left pane: params; right pane: live bead-pattern preview + BOM summary | Grid size (numeric + presets 16/29/48/58/64); palette dropdown; color cap (optional); dither (3-way) |
+| ③ Tune | Left pane: params; right pane: live bead-pattern preview + BOM summary | Grid size (numeric + presets 16/29/48/58/64); palette dropdown; color cap (optional — caps total distinct palette colors used, default = whole palette); dither (3-way) |
 | ④ Export | Large preview (toggle: pattern view ⇄ original-comparison) + full BOM + downloads | Download PNG / PDF / copy BOM text |
 
 ### 4.1 Routing
@@ -296,7 +296,7 @@ Top-right 中 / EN toggle; switch is instant; preference saved to `localStorage`
 | CIEDE2000 ×150 colors slow on low-end mobile | Performance budget enforced in CI; fall back to ΔE76 if budget breached on real devices |
 | pdf-lib bundle bloat (~300 KB) | Code-split: only loaded when user reaches step ④ |
 | Web Worker support gaps in older Safari | Main-thread fallback already specced; degradation visible to user |
-| GitHub repo only (no deploy) means no real-user feedback in v1 | Acceptable — deferred deployment is an explicit user decision; v2 adds deploy |
+| GitHub repo only (no deploy) means no real-user feedback in v1 | Acceptable — deferred deployment is an explicit user decision; deployment to be revisited after v1 ships (target: at or before v2) |
 
 **Assumptions**:
 - User has decided **not** to deploy in v1; only commits to GitHub.
