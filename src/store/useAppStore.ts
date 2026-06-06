@@ -65,7 +65,8 @@ export const useAppStore = create<AppState & AppActions>()(
       reset: () => set(defaultState()),
     }),
     {
-      name: 'pinpindou-v1',
+      // v2: bumped so v1's stale dither/colorCap defaults are wiped on upgrade.
+      name: 'pinpindou-v2',
       storage: createJSONStorage(() => localStorage),
       // Only persist tune preferences (palette / size / dither).
       // Image, crop, preprocess, step are session-only — refresh starts clean.
