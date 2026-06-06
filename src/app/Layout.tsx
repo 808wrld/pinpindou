@@ -26,8 +26,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <span className="block h-3.5 w-3.5 rounded-full bg-accent border border-ink" />
             </div>
             <div>
-              <h1 className="font-display font-black text-2xl leading-none tracking-tight">
-                pin<span className="text-accent">/</span>pin<span className="text-accent">/</span>dou
+              <h1 className="font-display italic text-3xl leading-none tracking-tight">
+                pin<span className="text-accent not-italic">/</span>pin<span className="text-accent not-italic">/</span>dou
               </h1>
               <p className="font-display-body italic text-xs text-mute mt-1">{t('app.subtitle')}</p>
             </div>
@@ -70,10 +70,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   className="group flex flex-col items-center text-center disabled:cursor-not-allowed"
                 >
                   <span
-                    className={`font-display font-black leading-none text-5xl md:text-6xl ${
+                    className={`font-display leading-none text-6xl md:text-7xl ${
                       active ? 'text-ink' : reachable ? 'text-mute group-hover:text-ink-2' : 'text-rule'
                     }`}
-                    style={{ fontVariationSettings: '"opsz" 144' }}
+                    style={{ lineHeight: 0.85, letterSpacing: '-0.02em' }}
                   >
                     {String(i + 1).padStart(2, '0')}
                   </span>

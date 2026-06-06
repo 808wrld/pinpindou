@@ -63,13 +63,9 @@ export const useAppStore = create<AppState & AppActions>()(
     {
       name: 'pinpindou-v1',
       storage: createJSONStorage(() => localStorage),
-      partialize: (s) => ({
-        step: s.step,
-        image: s.image,
-        crop: s.crop,
-        preprocess: s.preprocess,
-        tune: s.tune,
-      }),
+      // Only persist tune preferences (palette / size / dither).
+      // Image, crop, preprocess, step are session-only — refresh starts clean.
+      partialize: (s) => ({ tune: s.tune }),
     },
   ),
 )

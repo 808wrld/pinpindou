@@ -21,9 +21,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fraunces variable axis tuning */
-.font-display { font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 0; }
-.font-display-body { font-variation-settings: "opsz" 14, "SOFT" 50, "WONK" 1; font-family: 'Fraunces', serif; }
+/* Display + body italic helpers */
+.font-display { letter-spacing: -0.01em; }
+.font-display-body { font-family: 'Instrument Serif', 'Source Han Serif SC', 'Songti SC', serif; font-style: italic; letter-spacing: 0; }
 
 /* Grain overlay container — used inside body root */
 .grain {
