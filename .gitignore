@@ -4,3 +4,4 @@ dist/
 .superpowers/
 .env*
 !.env.example
+src/palettes/generated/
