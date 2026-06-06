@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/useAppStore'
 import { PatternCanvas } from '@/features/preview/PatternCanvas'
@@ -51,6 +51,7 @@ export function TuneStep() {
         targetH: tune.targetH,
         palette,
         ditherMode: tune.dither,
+        colorCap: tune.colorCap,
       })
       if ('cells' in res) setCells(res.cells)
       setBusy(false)
@@ -66,6 +67,17 @@ export function TuneStep() {
   const ditherLabel =
     tune.dither === 'floyd-steinberg' ? 'F-S' : tune.dither === 'ordered-4x4' ? 'BAYER' : 'NONE'
   const paletteLabel = PALETTE_LABELS[tune.paletteId][isZh ? 'zh-CN' : 'en']
+
+  const beads = tune.targetW * tune.targetH
+  const colorsUsed = useMemo(() => {
+    if (!cells) return 0
+    const s = new Set<number>()
+    for (const row of cells) for (const c of row) s.add(c)
+    return s.size
+  }, [cells])
+
+  const paletteSize = palette?.colors.length ?? 30
+  const cap = tune.colorCap ?? paletteSize
 
   return (
     <div className="grid gap-10 md:grid-cols-[280px_1fr] animate-specimen-in">
@@ -103,6 +115,27 @@ export function TuneStep() {
           </select>
         </ControlGroup>
 
+        <ControlGroup label={`${t('tune.colorCap')} · ${cap}`}>
+          <input
+            type="range"
+            min={4}
+            max={paletteSize}
+            step={1}
+            value={cap}
+            onChange={(e) => setTune({ colorCap: parseInt(e.target.value, 10) })}
+          />
+          <div className="mt-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-label text-mute">
+            <span>4</span>
+            <button
+              onClick={() => setTune({ colorCap: null })}
+              className="hover:text-accent"
+            >
+              {t('tune.colorCap.unlimited')}
+            </button>
+            <span>{paletteSize}</span>
+          </div>
+        </ControlGroup>
+
         <ControlGroup label={t('tune.dither')}>
           <div className="grid grid-cols-3 gap-2">
             {(['none', 'floyd-steinberg', 'ordered-4x4'] as const).map((m) => (
@@ -120,8 +153,20 @@ export function TuneStep() {
         </ControlGroup>
       </div>
 
-      {/* Right: specimen preview + BOM */}
+      {/* Right: stats + preview + BOM */}
       <div className="space-y-6">
+        {/* Stats cards — dimensions / beads / colors / mode */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-ink border border-ink">
+          <StatCard label={t('tune.size')} value={`${tune.targetW}×${tune.targetH}`} />
+          <StatCard label={isZh ? '豆数' : 'BEADS'} value={beads.toLocaleString()} />
+          <StatCard
+            label={isZh ? '颜色' : 'COLORS'}
+            value={`${colorsUsed}`}
+            sub={cap < paletteSize ? `≤ ${cap}` : isZh ? '不限' : 'free'}
+          />
+          <StatCard label={t('tune.dither')} value={ditherLabel} />
+        </div>
+
         <div className="flex items-baseline justify-between">
           <SpecLabel>{t('tune.preview')}</SpecLabel>
           <span className="font-mono text-[10px] uppercase tracking-label text-mute">
@@ -139,7 +184,7 @@ export function TuneStep() {
                 cellSize={Math.max(8, Math.floor(560 / cells[0].length))}
               />
             </div>
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-label text-ink-2 flex items-center gap-4">
+            <p className="mt-4 font-mono text-[10px] uppercase tracking-label text-ink-2 flex flex-wrap items-center gap-x-4 gap-y-1">
               <span>SPEC №001</span>
               <span className="text-rule">·</span>
               <span>
@@ -164,6 +209,16 @@ function ControlGroup({ label, children }: { label: string; children: React.Reac
     <div>
       <SpecLabel>{label}</SpecLabel>
       <div className="mt-3">{children}</div>
+    </div>
+  )
+}
+
+function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+  return (
+    <div className="bg-paper-2 p-4 md:p-5">
+      <div className="font-mono text-[10px] uppercase tracking-label text-mute">{label}</div>
+      <div className="mt-2 font-display text-3xl md:text-4xl leading-none text-ink">{value}</div>
+      {sub && <div className="mt-1 font-mono text-[10px] uppercase tracking-label text-mute">{sub}</div>}
     </div>
   )
 }
