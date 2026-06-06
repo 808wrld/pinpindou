@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/useAppStore'
 import { CornerMarks } from '@/components/decor/CornerMarks'
 import { SpecLabel } from '@/components/decor/SpecLabel'
+import i18n from '@/app/i18n'
 
 // I6: dropped the '∞ free' chip — it was a dead button.
 const ASPECTS = [
@@ -96,7 +97,7 @@ export function CropStep() {
   return (
     <div className="grid gap-12 md:grid-cols-[1fr_1fr] animate-specimen-in" ref={colRef}>
       <div>
-        <SpecLabel>SPEC №001 · ORIGINAL</SpecLabel>
+        <SpecLabel>{i18n.language.startsWith('zh') ? '原图 №001' : 'SPEC №001 · ORIGINAL'}</SpecLabel>
         <div className="relative mt-4 border border-ink bg-paper-2" style={{ width: frame, height: frame }}>
           <CornerMarks inset={-1} size={14} />
           <div style={previewStyle} />
