@@ -3,7 +3,8 @@ import { resolve } from 'node:path'
 
 test('happy path: upload → crop → tune → export PDF', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText(/拼拼豆|pinpindou/)).toBeVisible()
+  // Brand mark now contains both 拼拼豆 (h1) and pinpindou (subtitle) — match the heading.
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/拼拼豆|pinpindou/)
 
   const fileInput = page.locator('input[type=file]')
   await fileInput.setInputFiles(resolve('e2e/fixtures/sample.png'))
