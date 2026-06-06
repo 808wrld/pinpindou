@@ -36,7 +36,7 @@ export function ciede2000(lab1: Lab, lab2: Lab, kL = 1, kC = 1, kH = 1): number 
   const Lbar = (L1 + L2) / 2
   const Cbarp = (C1p + C2p) / 2
 
-  let hbarp = 0
+  let hbarp: number
   if (C1p * C2p !== 0) {
     const sum = h1p + h2p
     if (Math.abs(h1p - h2p) <= 180) hbarp = sum / 2

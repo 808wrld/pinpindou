@@ -40,4 +40,3 @@ export function Router() {
   }
 }
 
-export function go(step: Step) { location.hash = `#/${step}` }

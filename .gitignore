@@ -8,4 +8,5 @@ src/palettes/generated/
 .omc/
 test-results/
 playwright-report/
+coverage/
 e2e/fixtures/sample.png

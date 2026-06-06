@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/useAppStore'
-import { go } from '@/app/Router'
+import { go } from '@/app/navigation'
 import { validateFile } from './validate'
 
 export function UploadStep() {
