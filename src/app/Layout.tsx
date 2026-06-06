@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useAppStore, type Step } from '@/store/useAppStore'
-import { go } from './Router'
+import { go } from './navigation'
 import i18n from './i18n'
 
 const STEPS: Step[] = ['upload', 'crop', 'tune', 'export']

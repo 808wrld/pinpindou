@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# pinpindou · 拼拼豆
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Image → perler-bead pattern generator. Bilingual (zh-CN / en).
+Spec: [`docs/superpowers/specs/2026-06-06-pinpindou-design.md`](docs/superpowers/specs/2026-06-06-pinpindou-design.md).
 
-Currently, two official plugins are available:
+## Features (v1)
+- 4-step wizard: upload → crop → tune → export
+- CIEDE2000 color matching (more accurate than RGB Euclidean)
+- 3 dither modes: none / Floyd-Steinberg (Lab space) / ordered Bayer 4×4
+- 3 palettes: 漫游酱 (Manyou, ~30 starter colors), Perler, Hama
+- Bead-count list (BOM) — exportable as text + embedded in PDF
+- Printable PDF + PNG download
+- zh-CN default with EN toggle
+- Pure-client (no backend), runs in browser via Web Workers
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
+React 19 · Vite · TypeScript · Tailwind · Zustand · pdf-lib · react-i18next · Vitest · Playwright
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Local dev
+```bash
+npm install
+npm run dev
+# build:
+npm run build && npm run preview
+# tests:
+npm test
+npm run e2e
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project structure
+- `src/lib/` — pure algorithm code (color, image, dither, pdf) — TDD'd
+- `src/workers/` — Web Workers for preprocess + quantize
+- `src/features/` — UI by feature (upload / crop / tune / export / preview / bom)
+- `src/palettes/` — source palette JSONs; `generated/` is built by `npm run build:palettes`
+- `src/i18n/` — translation JSONs
+- `docs/palettes/` — provenance for each palette's RGB values
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Adding palette colors
+1. Edit `src/palettes/<id>.json` (add to `colors`)
+2. Update `docs/palettes/<id>.md` with the source
+3. `npm run build:palettes` regenerates `src/palettes/generated/`
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Out of scope (deferred)
+- v2: 小红书 share exports, symbol-grid mode, multi-board auto-split, URL share
+- v3: manual cell editor
+
+## License
+TBD by repo owner.
