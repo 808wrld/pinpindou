@@ -64,5 +64,3 @@ export function PatternCanvas({
   return <canvas ref={ref} className="block max-w-full h-auto" style={{ imageRendering: 'pixelated' }} />
 }
 
-// Re-export for callers that already import from this module path.
-export { hexLuma, SYMBOLS, buildSymbolMap } from './symbols'

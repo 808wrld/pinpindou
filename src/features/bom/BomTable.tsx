@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import type { Palette } from '@/lib/pattern/types'
 import { computeBomWithTotal } from './computeBom'
-import { hexLuma } from '@/features/preview/PatternCanvas'
+import { hexLuma } from '@/features/preview/symbols'
 
 export function BomTable({
   cells,
