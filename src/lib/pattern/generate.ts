@@ -1,8 +1,24 @@
 import { runPreprocess } from '@/lib/workers/runPreprocess'
 import { runQuantize } from '@/lib/workers/runQuantize'
-import { ciede2000 } from '@/lib/color/ciede2000'
 import type { Palette } from './types'
 
+/**
+ * Two-pass pattern generation (mirrors the proven approach in
+ * bad-superman/perler-pattern-generator):
+ *
+ *   1. PRESELECT — quantize against the full palette with NO dither, just
+ *      to learn which colors actually appear. Count frequencies, take top-N
+ *      (N = colorCap). The full palette has many near-duplicates (3 whites,
+ *      2 greys, etc.); we don't want the dither to flicker between them.
+ *
+ *   2. RENDER — quantize again against ONLY the top-N reduced palette, this
+ *      time with the user's chosen dither. With fewer candidates and no
+ *      near-duplicates, F-S / Bayer stop producing salt-pepper noise on
+ *      uniform regions, and `none` mode yields perfectly clean blocks.
+ *
+ * The returned cells contain indices into the ORIGINAL palette (we remap
+ * the reduced indices back) so BOM and rendering Just Work downstream.
+ */
 export async function generatePattern(args: {
   imageDataUrl: string
   srcW: number
@@ -28,73 +44,64 @@ export async function generatePattern(args: {
     targetH: args.targetH,
   })
   if (pre.type === 'preprocess:error') return { error: pre.message }
-  const paletteLab = new Float32Array(args.palette.colors.length * 3)
-  for (let i = 0; i < args.palette.colors.length; i++) {
-    const [L, a, b] = args.palette.colors[i].lab
-    paletteLab[i * 3] = L
-    paletteLab[i * 3 + 1] = a
-    paletteLab[i * 3 + 2] = b
-  }
-  const q = await runQuantize({
+
+  const fullPaletteLab = buildLabArray(args.palette, args.palette.colors.map((_, i) => i))
+  const paletteSize = args.palette.colors.length
+  const cap = args.colorCap && args.colorCap > 0 ? Math.min(args.colorCap, paletteSize) : paletteSize
+
+  // Keep an unowned copy of the preprocessed pixels for the second pass —
+  // postMessage with transfer detaches the buffer after the first call.
+  const pixelsCopy = new Uint8ClampedArray(pre.pixels)
+
+  // Pass 1: full palette, no dither, just to count frequencies.
+  const q1 = await runQuantize({
     pixels: pre.pixels,
     width: pre.w,
     height: pre.h,
-    paletteLab,
-    ditherMode: args.ditherMode,
+    paletteLab: fullPaletteLab,
+    ditherMode: 'none',
   })
-  if (q.type === 'quantize:error') return { error: q.message }
+  if (q1.type === 'quantize:error') return { error: q1.message }
 
-  const cells =
-    args.colorCap && args.colorCap > 0
-      ? applyColorCap(q.cells, args.palette, args.colorCap)
-      : q.cells
+  // Optimization: if the cap covers everything AND user picked no dither,
+  // pass 1 already IS the answer.
+  if (cap >= paletteSize && args.ditherMode === 'none') {
+    return { cells: q1.cells }
+  }
 
-  return { cells }
-}
-
-/**
- * Limit the pattern to at most `cap` distinct colors. Strategy:
- *   1. Count usage of each palette index in `cells`.
- *   2. Keep the top-`cap` by frequency.
- *   3. Any cell using a dropped color is re-mapped to the nearest kept color
- *      via CIEDE2000 in Lab space.
- *
- * This is the key knob for clean output on flat / cartoon inputs. Without it,
- * F-S / Bayer diffuse error across visually-similar palette entries (e.g.
- * three near-whites) and produce salt-and-pepper noise on uniform regions.
- */
-function applyColorCap(cells: number[][], palette: Palette, cap: number): number[][] {
   const counts = new Map<number, number>()
-  for (const row of cells) for (const idx of row) counts.set(idx, (counts.get(idx) ?? 0) + 1)
-  if (counts.size <= cap) return cells
-
-  const keep = [...counts.entries()]
+  for (const row of q1.cells) for (const c of row) counts.set(c, (counts.get(c) ?? 0) + 1)
+  const topOrig = [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, cap)
     .map(([idx]) => idx)
-  const keepSet = new Set(keep)
 
-  // Memoize the remap (dropped index → nearest kept index) so we only
-  // compute CIEDE2000 once per dropped color, not once per cell.
-  const remap = new Map<number, number>()
-  function nearestKept(droppedIdx: number): number {
-    const cached = remap.get(droppedIdx)
-    if (cached !== undefined) return cached
-    const droppedLab = palette.colors[droppedIdx].lab
-    let bestIdx = keep[0]
-    let bestDe = Infinity
-    for (const k of keep) {
-      const de = ciede2000(droppedLab, palette.colors[k].lab)
-      if (de < bestDe) {
-        bestDe = de
-        bestIdx = k
-      }
-    }
-    remap.set(droppedIdx, bestIdx)
-    return bestIdx
+  // Pass 2: reduced palette + user's chosen dither.
+  const reducedLab = buildLabArray(args.palette, topOrig)
+  const q2 = await runQuantize({
+    pixels: pixelsCopy,
+    width: pre.w,
+    height: pre.h,
+    paletteLab: reducedLab,
+    ditherMode: args.ditherMode,
+  })
+  if (q2.type === 'quantize:error') return { error: q2.message }
+
+  // q2.cells indices are 0..topOrig.length-1 (into reduced palette).
+  // Remap back to original palette indices so BOM / preview use the full color metadata.
+  const cells = q2.cells.map((row) => row.map((idx) => topOrig[idx]))
+  return { cells }
+}
+
+function buildLabArray(palette: Palette, indices: readonly number[]): Float32Array {
+  const out = new Float32Array(indices.length * 3)
+  for (let i = 0; i < indices.length; i++) {
+    const [L, a, b] = palette.colors[indices[i]].lab
+    out[i * 3] = L
+    out[i * 3 + 1] = a
+    out[i * 3 + 2] = b
   }
-
-  return cells.map((row) => row.map((idx) => (keepSet.has(idx) ? idx : nearestKept(idx))))
+  return out
 }
 
 async function loadPixels(dataUrl: string, w: number, h: number): Promise<Uint8ClampedArray> {
