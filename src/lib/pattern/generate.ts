@@ -1,5 +1,6 @@
 import { runPreprocess } from '@/lib/workers/runPreprocess'
 import { runQuantize } from '@/lib/workers/runQuantize'
+import { ciede2000 } from '@/lib/color/ciede2000'
 import type { Palette } from './types'
 
 export async function generatePattern(args: {
@@ -13,6 +14,7 @@ export async function generatePattern(args: {
   targetH: number
   palette: Palette
   ditherMode: 'none' | 'floyd-steinberg' | 'ordered-4x4'
+  colorCap?: number | null
 }): Promise<{ cells: number[][] } | { error: string }> {
   const pixels = await loadPixels(args.imageDataUrl, args.srcW, args.srcH)
   const pre = await runPreprocess({
@@ -41,7 +43,58 @@ export async function generatePattern(args: {
     ditherMode: args.ditherMode,
   })
   if (q.type === 'quantize:error') return { error: q.message }
-  return { cells: q.cells }
+
+  const cells =
+    args.colorCap && args.colorCap > 0
+      ? applyColorCap(q.cells, args.palette, args.colorCap)
+      : q.cells
+
+  return { cells }
+}
+
+/**
+ * Limit the pattern to at most `cap` distinct colors. Strategy:
+ *   1. Count usage of each palette index in `cells`.
+ *   2. Keep the top-`cap` by frequency.
+ *   3. Any cell using a dropped color is re-mapped to the nearest kept color
+ *      via CIEDE2000 in Lab space.
+ *
+ * This is the key knob for clean output on flat / cartoon inputs. Without it,
+ * F-S / Bayer diffuse error across visually-similar palette entries (e.g.
+ * three near-whites) and produce salt-and-pepper noise on uniform regions.
+ */
+function applyColorCap(cells: number[][], palette: Palette, cap: number): number[][] {
+  const counts = new Map<number, number>()
+  for (const row of cells) for (const idx of row) counts.set(idx, (counts.get(idx) ?? 0) + 1)
+  if (counts.size <= cap) return cells
+
+  const keep = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, cap)
+    .map(([idx]) => idx)
+  const keepSet = new Set(keep)
+
+  // Memoize the remap (dropped index → nearest kept index) so we only
+  // compute CIEDE2000 once per dropped color, not once per cell.
+  const remap = new Map<number, number>()
+  function nearestKept(droppedIdx: number): number {
+    const cached = remap.get(droppedIdx)
+    if (cached !== undefined) return cached
+    const droppedLab = palette.colors[droppedIdx].lab
+    let bestIdx = keep[0]
+    let bestDe = Infinity
+    for (const k of keep) {
+      const de = ciede2000(droppedLab, palette.colors[k].lab)
+      if (de < bestDe) {
+        bestDe = de
+        bestIdx = k
+      }
+    }
+    remap.set(droppedIdx, bestIdx)
+    return bestIdx
+  }
+
+  return cells.map((row) => row.map((idx) => (keepSet.has(idx) ? idx : nearestKept(idx))))
 }
 
 async function loadPixels(dataUrl: string, w: number, h: number): Promise<Uint8ClampedArray> {

@@ -43,7 +43,9 @@ export function defaultState(): AppState {
       // Default to no dither — clean for cartoons / pixel art (most user input).
       // Floyd-Steinberg is better for photos; user can switch in the UI.
       dither: 'none',
-      colorCap: null,
+      // Default 16-color cap keeps output clean even with F-S; user can raise
+      // up to the full palette size (~30 in v1) or drop down to 4.
+      colorCap: 16,
     },
     cells: null,
   }
