@@ -133,7 +133,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {t('nav.back')}
           </button>
           <span className="font-mono text-[10px] uppercase tracking-label text-mute">
-            STEP {String(stepIdx + 1).padStart(2, '0')} / 04
+            {isZh
+              ? `第 ${stepIdx + 1} 步 / 共 4 步`
+              : `STEP ${String(stepIdx + 1).padStart(2, '0')} / 04`}
           </span>
           <button
             onClick={() => stepIdx < 3 && go(STEPS[stepIdx + 1])}

@@ -46,7 +46,7 @@ export function UploadStep() {
   return (
     <div className="grid gap-10 md:grid-cols-[1fr_1fr] items-center animate-specimen-in">
       <div>
-        <SpecLabel>SPEC №000 · SOURCE INPUT</SpecLabel>
+        <SpecLabel>{isZh ? '素材 №000' : 'SPEC №000 · SOURCE INPUT'}</SpecLabel>
         <h2 className="mt-6 font-display font-black leading-[0.92] text-6xl md:text-7xl">
           {isZh ? (
             <>
