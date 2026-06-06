@@ -16,7 +16,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
+    "e2e:prepare": "node e2e/makeFixture.mjs",
+    "e2e": "npm run e2e:prepare && playwright test",
     "build:palettes": "tsx scripts/build-palettes.ts"
   },
   "dependencies": {
