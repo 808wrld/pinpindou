@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppStore } from '@/store/useAppStore'
 import { PatternCanvas, buildSymbolMap } from '@/features/preview/PatternCanvas'
@@ -7,14 +7,14 @@ import { generatePattern } from '@/lib/pattern/generate'
 import { loadPalette } from '@/lib/pattern/loadPalette'
 import type { Palette } from '@/lib/pattern/types'
 import { SpecLabel } from '@/components/decor/SpecLabel'
+import { PreviewPaper, ToggleGroup } from '@/features/preview/PreviewPaper'
+import { StatCards } from '@/features/preview/StatCards'
+import { usePreviewScale } from '@/features/preview/usePreviewScale'
+import { PALETTE_IDS, PALETTE_LABELS, ditherLabel } from '@/features/preview/paletteLabels'
 
 const SIZE_PRESETS = [16, 29, 48, 58, 64] as const
-const PALETTE_IDS = ['manyoujiang', 'perler', 'hama'] as const
-const PALETTE_LABELS: Record<(typeof PALETTE_IDS)[number], { 'zh-CN': string; en: string }> = {
-  manyoujiang: { 'zh-CN': '漫游酱', en: 'Manyou' },
-  perler: { 'zh-CN': 'Perler', en: 'Perler' },
-  hama: { 'zh-CN': 'Hama', en: 'Hama' },
-}
+const SYMBOLS_CELL_PX = 20
+const SOLID_CELL_PX = 14
 
 type RenderMode = 'symbols' | 'solid'
 
@@ -30,9 +30,8 @@ export function TuneStep() {
   const [palette, setPalette] = useState<Palette | null>(null)
   const [busy, setBusy] = useState(false)
   const [renderMode, setRenderMode] = useState<RenderMode>('symbols')
-  const [scalePct, setScalePct] = useState(100)
+  const [errMsg, setErrMsg] = useState<string | null>(null)
   const timer = useRef<number | null>(null)
-  const previewWrapRef = useRef<HTMLDivElement>(null)
   const isZh = i18n.language.startsWith('zh')
 
   useEffect(() => {
@@ -57,7 +56,15 @@ export function TuneStep() {
         ditherMode: tune.dither,
         colorCap: tune.colorCap,
       })
-      if ('cells' in res) setCells(res.cells)
+      if ('cells' in res) {
+        setCells(res.cells)
+        setErrMsg(null)
+      } else {
+        // I3: don't leave stale cells on top of new failing settings — clear and surface
+        setCells(null)
+        setErrMsg(res.error)
+        console.error('Pattern generation failed:', res.error)
+      }
       setBusy(false)
     }, 200)
     return () => {
@@ -66,35 +73,24 @@ export function TuneStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [image, crop, preprocess, tune, palette])
 
-  const symbolMap = useMemo(() => (cells ? buildSymbolMap(cells) : new Map<number, string>()), [cells])
+  const symbolMap = useMemo(
+    () => (cells ? buildSymbolMap(cells) : new Map<number, string>()),
+    [cells],
+  )
   const colorsUsed = symbolMap.size
 
-  // Canvas natural pixel dimensions vs displayed dimensions → "56%" scale badge.
-  const naturalCellSize = renderMode === 'symbols' ? 20 : 14
+  const naturalCellSize = renderMode === 'symbols' ? SYMBOLS_CELL_PX : SOLID_CELL_PX
   const naturalWidth = (cells?.[0]?.length ?? tune.targetW) * naturalCellSize
-  useLayoutEffect(() => {
-    const el = previewWrapRef.current
-    if (!el) return
-    const update = () => {
-      const w = el.clientWidth
-      if (!w || !naturalWidth) return
-      setScalePct(Math.min(100, Math.round((w / naturalWidth) * 100)))
-    }
-    update()
-    const ro = new ResizeObserver(update)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [naturalWidth, cells])
+  const { ref: previewWrapRef, scalePct } = usePreviewScale(naturalWidth, [cells])
 
   if (!image || !crop) return null
 
-  const ditherLabel =
-    tune.dither === 'floyd-steinberg' ? 'F-S' : tune.dither === 'ordered-4x4' ? 'BAYER' : isZh ? '无' : 'NONE'
-  const paletteLabel = PALETTE_LABELS[tune.paletteId][isZh ? 'zh-CN' : 'en']
   const beads = tune.targetW * tune.targetH
   const paletteSize = palette?.colors.length ?? 30
   const cap = tune.colorCap ?? paletteSize
-  const modeLabel = renderMode === 'symbols' ? (isZh ? '符号图纸' : 'Symbol grid') : (isZh ? '纯色预览' : 'Solid preview')
+  const dLabel = ditherLabel(tune.dither, isZh)
+  const paletteLabel = PALETTE_LABELS[tune.paletteId][isZh ? 'zh-CN' : 'en']
+  const modeLabel = renderMode === 'symbols' ? (isZh ? '符号图纸' : 'Symbol grid') : isZh ? '纯色预览' : 'Solid preview'
 
   return (
     <div className="grid gap-8 md:grid-cols-[260px_1fr] animate-specimen-in">
@@ -169,7 +165,6 @@ export function TuneStep() {
 
       {/* Right: preview panel */}
       <div className="space-y-5">
-        {/* Header bar */}
         <div className="flex items-baseline justify-between">
           <SpecLabel>{isZh ? '图纸预览' : 'Pattern preview'}</SpecLabel>
           <span className="font-mono text-[10px] uppercase tracking-label text-mute">
@@ -177,83 +172,57 @@ export function TuneStep() {
           </span>
         </div>
 
-        {/* 4 Stat cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard
-            label={isZh ? '尺寸' : 'SIZE'}
-            value={`${tune.targetW}×${tune.targetH}`}
-            sub={isZh ? '按当前图纸精度生成' : 'at current precision'}
-          />
-          <StatCard
-            label={isZh ? '豆数' : 'BEADS'}
-            value={beads.toLocaleString()}
-            sub={isZh ? '预计用豆总量' : 'total beads needed'}
-          />
-          <StatCard
-            label={isZh ? '颜色' : 'COLORS'}
-            value={`${colorsUsed}`}
-            sub={isZh ? `已匹配色号 ≤ ${cap}` : `matched ≤ ${cap}`}
-          />
-          <StatCard
-            label={isZh ? '模式' : 'MODE'}
-            value={modeLabel}
-            sub={`${scalePct}% ${isZh ? '适配显示' : 'fit'} · ${ditherLabel}`}
-          />
-        </div>
+        <StatCards
+          entries={[
+            { label: isZh ? '尺寸' : 'SIZE', value: `${tune.targetW}×${tune.targetH}`, sub: isZh ? '按当前图纸精度生成' : 'at current precision' },
+            { label: isZh ? '豆数' : 'BEADS', value: beads.toLocaleString(), sub: isZh ? '预计用豆总量' : 'total beads needed' },
+            { label: isZh ? '颜色' : 'COLORS', value: `${colorsUsed}`, sub: isZh ? `已匹配色号 · ≤ ${cap}` : `matched · ≤ ${cap}` },
+            { label: isZh ? '模式' : 'MODE', value: modeLabel, sub: `${scalePct}% ${isZh ? '适配显示' : 'fit'} · ${dLabel}` },
+          ]}
+        />
 
-        {/* Preview paper */}
-        <div className="border border-ink bg-paper-2">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-ink">
-            <div>
-              <div className="font-display text-lg leading-tight">{isZh ? '整体图纸' : 'Full pattern'}</div>
-              <div className="font-mono text-[10px] uppercase tracking-label text-mute mt-0.5">
-                {isZh ? `已缩放到当前区域 · ${paletteLabel}` : `Fit to view · ${paletteLabel}`}
-              </div>
+        <PreviewPaper
+          title={isZh ? '整体图纸' : 'Full pattern'}
+          subtitle={isZh ? `已缩放到当前区域 · ${paletteLabel}` : `Fit to view · ${paletteLabel}`}
+          scalePct={scalePct}
+          contentRef={previewWrapRef}
+          controls={
+            <ToggleGroup<RenderMode>
+              value={renderMode}
+              onChange={setRenderMode}
+              options={[
+                { value: 'symbols', label: isZh ? '符号' : 'SYMBOLS' },
+                { value: 'solid', label: isZh ? '纯色' : 'SOLID' },
+              ]}
+            />
+          }
+        >
+          {cells && palette ? (
+            <div className="border-[2px] border-ink overflow-hidden inline-block max-w-full">
+              <PatternCanvas
+                cells={cells}
+                palette={palette}
+                cellSize={naturalCellSize}
+                showGrid
+                showSymbols={renderMode === 'symbols'}
+                symbolMap={symbolMap}
+              />
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex border border-ink">
-                <button
-                  onClick={() => setRenderMode('symbols')}
-                  className={`font-mono text-[10px] uppercase tracking-label px-3 py-1.5 ${
-                    renderMode === 'symbols' ? 'bg-ink text-paper' : 'text-mute hover:text-ink'
-                  }`}
-                >
-                  {isZh ? '符号' : 'SYMBOLS'}
-                </button>
-                <button
-                  onClick={() => setRenderMode('solid')}
-                  className={`font-mono text-[10px] uppercase tracking-label px-3 py-1.5 ${
-                    renderMode === 'solid' ? 'bg-ink text-paper' : 'text-mute hover:text-ink'
-                  }`}
-                >
-                  {isZh ? '纯色' : 'SOLID'}
-                </button>
-              </div>
-              <span className="font-mono text-xs text-accent font-semibold">{scalePct}%</span>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-mute font-mono text-xs uppercase tracking-label">
+              {errMsg
+                ? `✕ ${errMsg}`
+                : busy
+                  ? isZh
+                    ? '生成中…'
+                    : 'generating…'
+                  : isZh
+                    ? '等待生成'
+                    : 'waiting'}
             </div>
-          </div>
+          )}
+        </PreviewPaper>
 
-          <div ref={previewWrapRef} className="px-5 py-5 bg-paper">
-            {cells && palette ? (
-              <div className="border-[2px] border-ink overflow-hidden inline-block max-w-full">
-                <PatternCanvas
-                  cells={cells}
-                  palette={palette}
-                  cellSize={naturalCellSize}
-                  showGrid
-                  showSymbols={renderMode === 'symbols'}
-                  symbolMap={symbolMap}
-                />
-              </div>
-            ) : (
-              <div className="h-64 flex items-center justify-center text-mute font-mono text-xs uppercase tracking-label">
-                {busy ? (isZh ? '生成中…' : 'generating…') : (isZh ? '等待生成' : 'waiting')}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Legend */}
         {cells && palette && <BomTable cells={cells} palette={palette} symbolMap={symbolMap} />}
       </div>
     </div>
@@ -265,16 +234,6 @@ function ControlGroup({ label, children }: { label: string; children: React.Reac
     <div>
       <SpecLabel>{label}</SpecLabel>
       <div className="mt-3">{children}</div>
-    </div>
-  )
-}
-
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
-  return (
-    <div className="bg-paper-2 border border-rule px-4 py-3.5">
-      <div className="font-mono text-[10px] uppercase tracking-label text-mute">{label}</div>
-      <div className="mt-1.5 font-display leading-none text-ink truncate text-3xl md:text-[2rem]">{value}</div>
-      {sub && <div className="mt-1.5 font-mono text-[10px] uppercase tracking-label text-mute">{sub}</div>}
     </div>
   )
 }
