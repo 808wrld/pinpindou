@@ -7,7 +7,9 @@
     "node": ">=20"
   },
   "scripts": {
+    "predev": "npm run build:palettes",
     "dev": "vite",
+    "prebuild": "npm run build:palettes",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
