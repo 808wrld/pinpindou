@@ -1,5 +1,7 @@
 # 拼拼豆 (pinpindou)
 
+[English](./README.en.md) · 中文
+
 一个纯前端的 React 应用，把上传的图片转换成可拼可打印的拼豆（perler bead）图纸。所有图像处理都在浏览器端通过 Canvas API + Web Worker 完成，**无需后端服务**，因此可以作为纯静态站点部署。
 
 ## 特性
@@ -161,9 +163,3 @@ src/
 - **图像处理**：Canvas 2D API + Web Worker（preprocess + quantize 分离）
 - **导出**：pdf-lib（多页 PDF）+ 原生 Canvas → PNG
 - **测试**：Vitest + Testing Library（单元）+ Playwright（e2e）
-
-## 设计 / 实施文档
-
-- 设计 spec：[`docs/superpowers/specs/2026-06-06-pinpindou-design.md`](./docs/superpowers/specs/2026-06-06-pinpindou-design.md)
-- 实施计划：[`docs/superpowers/plans/2026-06-06-pinpindou-v1.md`](./docs/superpowers/plans/2026-06-06-pinpindou-v1.md)
-- 调色板数据来源：[`docs/palettes/`](./docs/palettes/)
