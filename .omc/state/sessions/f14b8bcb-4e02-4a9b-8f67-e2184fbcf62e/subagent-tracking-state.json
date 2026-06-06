@@ -6,10 +6,17 @@
       "started_at": "2026-06-06T08:07:26.020Z",
       "parent_mode": "none",
       "status": "running"
+    },
+    {
+      "agent_id": "a547f0db088fa8913",
+      "agent_type": "general-purpose",
+      "started_at": "2026-06-06T08:13:38.383Z",
+      "parent_mode": "none",
+      "status": "running"
     }
   ],
-  "total_spawned": 1,
+  "total_spawned": 2,
   "total_completed": 0,
   "total_failed": 0,
-  "last_updated": "2026-06-06T08:07:26.123Z"
+  "last_updated": "2026-06-06T08:13:38.485Z"
 }
