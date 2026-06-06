@@ -7,6 +7,7 @@ import { generatePattern } from '@/lib/pattern/generate'
 import { loadPalette } from '@/lib/pattern/loadPalette'
 import type { Palette } from '@/lib/pattern/types'
 import { SpecLabel } from '@/components/decor/SpecLabel'
+import { InfoTip } from '@/components/decor/InfoTip'
 import { PreviewPaper, ToggleGroup } from '@/features/preview/PreviewPaper'
 import { StatCards } from '@/features/preview/StatCards'
 import { usePreviewScale } from '@/features/preview/usePreviewScale'
@@ -146,7 +147,51 @@ export function TuneStep() {
           </div>
         </ControlGroup>
 
-        <ControlGroup label={t('tune.dither')}>
+        <ControlGroup
+          label={
+            <>
+              {t('tune.dither')}
+              <InfoTip label={isZh ? '抖动是什么？' : 'What is dithering?'}>
+                {isZh ? (
+                  <>
+                    <p className="mb-2">
+                      <b>抖动</b>决定颜色不够"匹配"时怎么过渡。
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">无</b> · 最近色直接匹配。卡通、线稿、像素艺术
+                      用这个最干净。
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">F-S</b> · Floyd-Steinberg 误差扩散。照片和渐变
+                      用这个，过渡更平滑。
+                    </p>
+                    <p>
+                      <b className="text-accent">Bayer</b> · 4×4 有序点阵抖动，复古像素游戏感。
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2">
+                      <b>Dithering</b> decides how to fake colors the palette doesn’t have exactly.
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">None</b> · Nearest-color match. Cleanest for
+                      cartoons, line art, pixel art.
+                    </p>
+                    <p className="mb-1.5">
+                      <b className="text-accent">F-S</b> · Floyd-Steinberg error diffusion. Use for
+                      photos and gradients — smoother transitions.
+                    </p>
+                    <p>
+                      <b className="text-accent">Bayer</b> · 4×4 ordered dither, retro pixel-art
+                      look.
+                    </p>
+                  </>
+                )}
+              </InfoTip>
+            </>
+          }
+        >
           <div className="grid grid-cols-3 gap-2">
             {(['none', 'floyd-steinberg', 'ordered-4x4'] as const).map((m) => (
               <button
@@ -229,7 +274,7 @@ export function TuneStep() {
   )
 }
 
-function ControlGroup({ label, children }: { label: string; children: React.ReactNode }) {
+function ControlGroup({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <SpecLabel>{label}</SpecLabel>
