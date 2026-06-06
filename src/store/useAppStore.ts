@@ -40,7 +40,9 @@ export function defaultState(): AppState {
       targetW: 29,
       targetH: 29,
       paletteId: 'manyoujiang',
-      dither: 'floyd-steinberg',
+      // Default to no dither — clean for cartoons / pixel art (most user input).
+      // Floyd-Steinberg is better for photos; user can switch in the UI.
+      dither: 'none',
       colorCap: null,
     },
     cells: null,
