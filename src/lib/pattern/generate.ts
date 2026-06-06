@@ -55,6 +55,10 @@ async function loadPixels(dataUrl: string, w: number, h: number): Promise<Uint8C
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
+  // Pre-fill white so transparent PNG pixels are treated as white instead of
+  // black-with-alpha-0 (which would otherwise diffuse into background noise).
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, w, h)
   ctx.drawImage(img, 0, 0)
   return ctx.getImageData(0, 0, w, h).data
 }
