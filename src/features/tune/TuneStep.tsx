@@ -6,12 +6,19 @@ import { BomTable } from '@/features/bom/BomTable'
 import { generatePattern } from '@/lib/pattern/generate'
 import { loadPalette } from '@/lib/pattern/loadPalette'
 import type { Palette } from '@/lib/pattern/types'
+import { CornerMarks } from '@/components/decor/CornerMarks'
+import { SpecLabel } from '@/components/decor/SpecLabel'
 
 const SIZE_PRESETS = [16, 29, 48, 58, 64] as const
 const PALETTE_IDS = ['manyoujiang', 'perler', 'hama'] as const
+const PALETTE_LABELS: Record<(typeof PALETTE_IDS)[number], { 'zh-CN': string; en: string }> = {
+  manyoujiang: { 'zh-CN': '漫游酱', en: 'Manyou' },
+  perler: { 'zh-CN': 'Perler', en: 'Perler' },
+  hama: { 'zh-CN': 'Hama', en: 'Hama' },
+}
 
 export function TuneStep() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const image = useAppStore((s) => s.image)
   const crop = useAppStore((s) => s.crop)
   const preprocess = useAppStore((s) => s.preprocess)
@@ -22,6 +29,7 @@ export function TuneStep() {
   const [palette, setPalette] = useState<Palette | null>(null)
   const [busy, setBusy] = useState(false)
   const timer = useRef<number | null>(null)
+  const isZh = i18n.language.startsWith('zh')
 
   useEffect(() => {
     void loadPalette(tune.paletteId).then(setPalette)
@@ -55,72 +63,107 @@ export function TuneStep() {
 
   if (!image || !crop) return null
 
+  const ditherLabel =
+    tune.dither === 'floyd-steinberg' ? 'F-S' : tune.dither === 'ordered-4x4' ? 'BAYER' : 'NONE'
+  const paletteLabel = PALETTE_LABELS[tune.paletteId][isZh ? 'zh-CN' : 'en']
+
   return (
-    <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-[260px_1fr]">
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm font-medium">{t('tune.size')}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+    <div className="grid gap-10 md:grid-cols-[280px_1fr] animate-specimen-in">
+      {/* Left control rail */}
+      <div className="space-y-8">
+        <ControlGroup label={t('tune.size')}>
+          <div className="grid grid-cols-3 gap-2">
             {SIZE_PRESETS.map((s) => (
               <button
                 key={s}
                 onClick={() => setTune({ targetW: s, targetH: s })}
-                className={`rounded border px-3 py-1 text-xs ${
-                  tune.targetW === s && tune.targetH === s
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-white'
+                className={`font-display font-medium text-base py-2.5 border border-ink ${
+                  tune.targetW === s ? 'bg-ink text-paper' : 'bg-paper hover:bg-paper-2'
                 }`}
               >
-                {s}×{s}
+                {s}
+                <span className="text-mute mx-0.5">×</span>
+                {s}
               </button>
             ))}
           </div>
-        </div>
-        <div>
-          <p className="text-sm font-medium">{t('tune.palette')}</p>
+        </ControlGroup>
+
+        <ControlGroup label={t('tune.palette')}>
           <select
             value={tune.paletteId}
-            onChange={(e) =>
-              setTune({ paletteId: e.target.value as (typeof PALETTE_IDS)[number] })
-            }
-            className="mt-2 w-full rounded border px-2 py-1 text-sm"
+            onChange={(e) => setTune({ paletteId: e.target.value as (typeof PALETTE_IDS)[number] })}
+            className="spec-select w-full"
           >
             {PALETTE_IDS.map((id) => (
               <option key={id} value={id}>
-                {id}
+                {PALETTE_LABELS[id][isZh ? 'zh-CN' : 'en']}
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <p className="text-sm font-medium">{t('tune.dither')}</p>
-          <div className="mt-2 flex gap-2">
+        </ControlGroup>
+
+        <ControlGroup label={t('tune.dither')}>
+          <div className="grid grid-cols-3 gap-2">
             {(['none', 'floyd-steinberg', 'ordered-4x4'] as const).map((m) => (
               <button
                 key={m}
                 onClick={() => setTune({ dither: m })}
-                className={`rounded border px-3 py-1 text-xs ${
-                  tune.dither === m ? 'bg-slate-900 text-white' : 'bg-white'
+                className={`font-mono text-[10px] uppercase tracking-label py-2.5 border border-ink ${
+                  tune.dither === m ? 'bg-ink text-paper' : 'bg-paper hover:bg-paper-2'
                 }`}
               >
-                {m === 'floyd-steinberg'
-                  ? t('tune.dither.fs')
-                  : m === 'none'
-                    ? t('tune.dither.none')
-                    : t('tune.dither.ordered')}
+                {m === 'floyd-steinberg' ? 'F-S' : m === 'none' ? t('tune.dither.none') : 'BAYER'}
               </button>
             ))}
           </div>
-        </div>
+        </ControlGroup>
       </div>
-      <div className="space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">{t('tune.preview')}</span>
-          {busy && <span className="text-xs text-slate-400">…</span>}
+
+      {/* Right: specimen preview + BOM */}
+      <div className="space-y-6">
+        <div className="flex items-baseline justify-between">
+          <SpecLabel>{t('tune.preview')}</SpecLabel>
+          <span className="font-mono text-[10px] uppercase tracking-label text-mute">
+            {busy ? '◌ generating' : '● ready'}
+          </span>
         </div>
-        {cells && palette && <PatternCanvas cells={cells} palette={palette} />}
+
+        {cells && palette && (
+          <div className="relative inline-block bg-paper-2 border border-ink p-4 md:p-6 max-w-full">
+            <CornerMarks inset={-1} size={14} />
+            <div className="overflow-auto">
+              <PatternCanvas
+                cells={cells}
+                palette={palette}
+                cellSize={Math.max(8, Math.floor(560 / cells[0].length))}
+              />
+            </div>
+            <p className="mt-4 font-mono text-[10px] uppercase tracking-label text-ink-2 flex items-center gap-4">
+              <span>SPEC №001</span>
+              <span className="text-rule">·</span>
+              <span>
+                {tune.targetW} × {tune.targetH}
+              </span>
+              <span className="text-rule">·</span>
+              <span>{paletteLabel}</span>
+              <span className="text-rule">·</span>
+              <span>{ditherLabel}</span>
+            </p>
+          </div>
+        )}
+
         {cells && palette && <BomTable cells={cells} palette={palette} />}
       </div>
+    </div>
+  )
+}
+
+function ControlGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <SpecLabel>{label}</SpecLabel>
+      <div className="mt-3">{children}</div>
     </div>
   )
 }

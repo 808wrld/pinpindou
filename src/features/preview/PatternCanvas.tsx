@@ -28,7 +28,7 @@ export function PatternCanvas({
       }
     }
     if (showGrid && cellSize >= 6) {
-      ctx.strokeStyle = 'rgba(0,0,0,0.15)'
+      ctx.strokeStyle = 'rgba(26,24,21,0.20)'
       ctx.lineWidth = 1
       for (let x = 0; x <= w; x++) {
         ctx.beginPath()
@@ -44,5 +44,5 @@ export function PatternCanvas({
       }
     }
   }, [cells, palette, cellSize, showGrid])
-  return <canvas ref={ref} className="rounded border bg-white" />
+  return <canvas ref={ref} className="block bg-paper-2" />
 }
