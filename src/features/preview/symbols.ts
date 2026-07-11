@@ -3,13 +3,11 @@
  * Lives in its own module so PatternCanvas.tsx only exports components
  * (keeps react-refresh happy and HMR stable).
  */
+import { hexToRgb } from '@/lib/color/lab'
 
 export function hexLuma(hex: string): number {
-  const h = hex.replace('#', '')
-  const r = parseInt(h.slice(0, 2), 16) / 255
-  const g = parseInt(h.slice(2, 4), 16) / 255
-  const b = parseInt(h.slice(4, 6), 16) / 255
-  return 0.299 * r + 0.587 * g + 0.114 * b
+  const { r, g, b } = hexToRgb(hex)
+  return 0.299 * (r / 255) + 0.587 * (g / 255) + 0.114 * (b / 255)
 }
 
 export const SYMBOLS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789◆●■▲★✦✚✕'

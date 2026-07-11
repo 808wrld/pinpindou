@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import type { Palette } from '@/lib/pattern/types'
 import { computeBomWithTotal } from '@/features/bom/computeBom'
+import { hexToRgb } from '@/lib/color/lab'
 
 export async function buildPatternPdf(
   cells: number[][],
@@ -62,10 +63,6 @@ export async function buildPatternPdf(
 }
 
 function hexToRgb01(hex: string): { r: number; g: number; b: number } {
-  const h = hex.replace('#', '')
-  return {
-    r: parseInt(h.slice(0, 2), 16) / 255,
-    g: parseInt(h.slice(2, 4), 16) / 255,
-    b: parseInt(h.slice(4, 6), 16) / 255,
-  }
+  const { r, g, b } = hexToRgb(hex)
+  return { r: r / 255, g: g / 255, b: b / 255 }
 }
