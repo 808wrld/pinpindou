@@ -26,10 +26,15 @@ export function rgbToLab(r: number, g: number, b: number): [number, number, numb
   return [L, a, bb]
 }
 
-export function hexToLab(hex: string): [number, number, number] {
+export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const h = hex.replace('#', '')
   const r = parseInt(h.slice(0, 2), 16)
   const g = parseInt(h.slice(2, 4), 16)
   const b = parseInt(h.slice(4, 6), 16)
+  return { r, g, b }
+}
+
+export function hexToLab(hex: string): [number, number, number] {
+  const { r, g, b } = hexToRgb(hex)
   return rgbToLab(r, g, b)
 }
