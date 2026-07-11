@@ -9,6 +9,7 @@ function resetWorker(err: unknown): void {
   for (const reject of pendingReject.values()) reject(err)
   pending.clear()
   pendingReject.clear()
+  worker?.terminate()
   worker = null
 }
 
