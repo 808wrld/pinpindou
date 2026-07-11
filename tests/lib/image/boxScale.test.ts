@@ -30,4 +30,10 @@ describe('boxScale', () => {
     const out = boxScale(src, 2, 1, 2, 1)
     expect(Array.from(out)).toEqual([10,20,30,255, 40,50,60,255])
   })
+  it('writes transparent black instead of NaN for a degenerate (zero-size) source box', () => {
+    const src = new Uint8ClampedArray(0)
+    const out = boxScale(src, 0, 0, 2, 2)
+    expect(out.length).toBe(2 * 2 * 4)
+    for (const v of out) expect(v).toBe(0)
+  })
 })

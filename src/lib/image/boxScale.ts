@@ -26,6 +26,15 @@ export function boxScale(
         }
       }
       const ti = (ty * tw + tx) * 4
+      if (n === 0) {
+        // Degenerate source box (sw===0, sh===0, or box falls outside src) —
+        // avoid 0/0 → NaN, write transparent black instead.
+        out[ti] = 0
+        out[ti + 1] = 0
+        out[ti + 2] = 0
+        out[ti + 3] = 0
+        continue
+      }
       out[ti] = Math.round(r / n)
       out[ti + 1] = Math.round(g / n)
       out[ti + 2] = Math.round(b / n)
