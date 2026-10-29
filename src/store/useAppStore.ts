@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import type { CropAspectId } from '@/lib/image/crop'
 
 export type Step = 'upload' | 'crop' | 'tune' | 'export'
 export type DitherMode = 'none' | 'floyd-steinberg' | 'ordered-4x4'
@@ -8,8 +9,11 @@ export type AppState = {
   step: Step
   image: { dataUrl: string; width: number; height: number; name: string } | null
   crop: { x: number; y: number; w: number; h: number } | null
+  cropAspect: CropAspectId
   preprocess: { brightness: number; contrast: number }
   tune: {
+    // Size preset = the pattern's LONG side. The short side follows the crop's
+    // aspect ratio (see patternDims); targetH mirrors targetW for old saves.
     targetW: number
     targetH: number
     paletteId: 'manyoujiang' | 'perler' | 'hama'
@@ -23,6 +27,7 @@ export type AppActions = {
   setStep: (s: Step) => void
   setImage: (img: AppState['image']) => void
   setCrop: (c: AppState['crop']) => void
+  setCropAspect: (a: CropAspectId) => void
   setBrightness: (v: number) => void
   setContrast: (v: number) => void
   setTune: (patch: Partial<AppState['tune']>) => void
@@ -35,6 +40,7 @@ export function defaultState(): AppState {
     step: 'upload',
     image: null,
     crop: null,
+    cropAspect: '1_1',
     preprocess: { brightness: 0, contrast: 0 },
     tune: {
       targetW: 29,
@@ -58,6 +64,7 @@ export const useAppStore = create<AppState & AppActions>()(
       setStep: (step) => set({ step }),
       setImage: (image) => set({ image }),
       setCrop: (crop) => set({ crop }),
+      setCropAspect: (cropAspect) => set({ cropAspect }),
       setBrightness: (v) => set((s) => ({ preprocess: { ...s.preprocess, brightness: v } })),
       setContrast: (v) => set((s) => ({ preprocess: { ...s.preprocess, contrast: v } })),
       setTune: (patch) => set((s) => ({ tune: { ...s.tune, ...patch } })),

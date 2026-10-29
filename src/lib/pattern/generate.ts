@@ -32,18 +32,8 @@ export async function generatePattern(args: {
   ditherMode: 'none' | 'floyd-steinberg' | 'ordered-4x4'
   colorCap?: number | null
 }): Promise<{ cells: number[][] } | { error: string }> {
-  const pixels = await loadPixels(args.imageDataUrl, args.srcW, args.srcH)
-  const pre = await runPreprocess({
-    pixels,
-    width: args.srcW,
-    height: args.srcH,
-    crop: args.crop,
-    brightness: args.brightness,
-    contrast: args.contrast,
-    targetW: args.targetW,
-    targetH: args.targetH,
-  })
-  if (pre.type === 'preprocess:error') return { error: pre.message }
+  const pre = await preprocess(args)
+  if ('error' in pre) return pre
 
   const fullPaletteLab = buildLabArray(args.palette, args.palette.colors.map((_, i) => i))
   const paletteSize = args.palette.colors.length
@@ -110,6 +100,56 @@ export async function generatePattern(args: {
   // Remap back to original palette indices so BOM / preview use the full color metadata.
   const cells = q2.cells.map((row) => row.map((idx) => topOrig[idx]))
   return { cells }
+}
+
+// Two caches keep tuning responsive:
+//  - the decoded full-resolution source pixels, so moving the crop or the
+//    brightness / contrast sliders no longer re-decodes the image on the
+//    main thread every time;
+//  - the last preprocess (crop + adjust + downscale) result, so changing the
+//    palette, dither mode or color cap only re-runs quantization.
+// Both hold a private copy: buffers handed to a worker are transferred.
+let sourceCache: { dataUrl: string; w: number; h: number; pixels: Uint8ClampedArray } | null = null
+let preprocessCache: { dataUrl: string; key: string; pixels: Uint8ClampedArray; w: number; h: number } | null = null
+
+type PreprocessArgs = {
+  imageDataUrl: string
+  srcW: number
+  srcH: number
+  crop: { x: number; y: number; w: number; h: number }
+  brightness: number
+  contrast: number
+  targetW: number
+  targetH: number
+}
+
+async function preprocess(
+  args: PreprocessArgs,
+): Promise<{ pixels: Uint8ClampedArray; w: number; h: number } | { error: string }> {
+  const key = JSON.stringify([args.srcW, args.srcH, args.crop, args.brightness, args.contrast, args.targetW, args.targetH])
+  if (preprocessCache && preprocessCache.dataUrl === args.imageDataUrl && preprocessCache.key === key) {
+    const { pixels, w, h } = preprocessCache
+    return { pixels: new Uint8ClampedArray(pixels), w, h }
+  }
+
+  if (!sourceCache || sourceCache.dataUrl !== args.imageDataUrl || sourceCache.w !== args.srcW || sourceCache.h !== args.srcH) {
+    const pixels = await loadPixels(args.imageDataUrl, args.srcW, args.srcH)
+    sourceCache = { dataUrl: args.imageDataUrl, w: args.srcW, h: args.srcH, pixels }
+  }
+
+  const res = await runPreprocess({
+    pixels: new Uint8ClampedArray(sourceCache.pixels),
+    width: args.srcW,
+    height: args.srcH,
+    crop: args.crop,
+    brightness: args.brightness,
+    contrast: args.contrast,
+    targetW: args.targetW,
+    targetH: args.targetH,
+  })
+  if (res.type === 'preprocess:error') return { error: res.message }
+  preprocessCache = { dataUrl: args.imageDataUrl, key, pixels: new Uint8ClampedArray(res.pixels), w: res.w, h: res.h }
+  return { pixels: res.pixels, w: res.w, h: res.h }
 }
 
 function buildLabArray(palette: Palette, indices: readonly number[]): Float32Array {

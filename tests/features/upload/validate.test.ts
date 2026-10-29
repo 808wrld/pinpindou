@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateFile } from '@/features/upload/validate'
+import { fitWithin, validateFile } from '@/features/upload/validate'
 
 function makeFile(name: string, type: string, size: number): File {
   const blob = new Blob([new Uint8Array(size)], { type })
@@ -24,5 +24,15 @@ describe('validateFile', () => {
   })
   it('rejects > 10MB', () => {
     expect(validateFile(makeFile('a.jpg', 'image/jpeg', 11 * 1024 * 1024))?.code).toBe('size')
+  })
+})
+
+describe('fitWithin', () => {
+  it('leaves images within the limit alone', () => {
+    expect(fitWithin(4000, 3000)).toEqual({ w: 4000, h: 3000 })
+  })
+  it('scales the longest side down to the limit, keeping the aspect ratio', () => {
+    expect(fitWithin(8192, 4096)).toEqual({ w: 4096, h: 2048 })
+    expect(fitWithin(1000, 20000, 4096)).toEqual({ w: 205, h: 4096 })
   })
 })
