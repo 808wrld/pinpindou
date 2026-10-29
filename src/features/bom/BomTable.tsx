@@ -18,13 +18,13 @@ export function BomTable({
   return (
     <div>
       <div className="flex items-baseline justify-between mb-3 px-1">
-        <p className="font-mono text-[10px] uppercase tracking-label text-ink-2 flex items-center gap-2">
+        <p className="font-mono text-[11px] uppercase tracking-label text-ink-2 flex items-center gap-2">
           <span className="inline-block w-3 h-px bg-ink-2" />
           {t('export.bom.title')} · {t('export.bom.total', { n: total })}
         </p>
         <button
           onClick={() => copyText(toText(bom, palette, lang))}
-          className="font-mono text-[10px] uppercase tracking-label text-mute hover:text-accent"
+          className="font-mono text-[11px] uppercase tracking-label text-mute hover:text-accent"
         >
           ⧉ {t('export.bom.copy')}
         </button>
