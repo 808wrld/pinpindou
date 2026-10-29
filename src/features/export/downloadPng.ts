@@ -1,4 +1,5 @@
 import type { Palette } from '@/lib/pattern/types'
+import { downloadBlob } from '@/lib/download'
 
 export async function downloadPatternPng(
   cells: number[][], palette: Palette, opts: { cellSize?: number; showGrid?: boolean; filename?: string } = {},
@@ -24,10 +25,8 @@ export async function downloadPatternPng(
       ctx.beginPath(); ctx.moveTo(0, y * cellSize); ctx.lineTo(w * cellSize, y * cellSize); ctx.stroke()
     }
   }
-  const blob: Blob = await new Promise(res => canvas.toBlob(b => res(b!), 'image/png'))
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = opts.filename ?? `pinpindou-${w}x${h}.png`
-  a.click()
-  URL.revokeObjectURL(url)
+  const blob = await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG encoding failed'))), 'image/png'),
+  )
+  downloadBlob(blob, opts.filename ?? `pinpindou-${w}x${h}.png`)
 }
