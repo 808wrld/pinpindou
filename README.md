@@ -5,12 +5,13 @@ A pure-frontend React app that turns uploaded images into beadable, printable pe
 ## Features
 
 - **4-step wizard**: Upload → Crop → Tune → Export
+- **Crop that keeps its shape**: drag (or arrow-key) the frame, zoom in, pick 1:1 / 2:1 / 1:2 — the grid follows the crop's aspect ratio (the size preset is the long side)
 - **CIEDE2000 color matching** in Lab space — closer to human perception than RGB Euclidean distance
 - **Three dither modes**: None / Floyd-Steinberg / Ordered Bayer 4×4
 - **Two-pass quantization**: full palette nearest-match → top-N preselection → render against the reduced palette, avoiding salt-and-pepper noise
 - **Three palettes**: Manyou (Taobao) / Perler / Hama, 30-color starter each (extendable)
 - **Symbol grid + solid preview** render modes
-- **Multi-page PDF** (with coordinates + BOM) + PNG export
+- **Printable PDF at real size**: A4 pages at 1 cell = 5 mm (midi bead pitch), large patterns tiled over several sheets with an overview page, symbols, every-5th-cell guides, global row / column numbers and a complete bead list; plus PNG export
 - **Bilingual UI** (zh-CN default / en)
 
 ## Local dev
@@ -71,14 +72,22 @@ server {
     root /var/www/pinpindou;
     index index.html;
 
-    # SPA fallback: any unmatched route returns index.html
+    # Security headers. Images are processed entirely in the browser; this CSP
+    # makes that a guarantee: the page can't send data to any other host, and
+    # only Google Fonts is allowed as a third-party resource.
+    # NOTE: nginx drops server-level add_header lines in any location that has
+    # its own add_header, so the assets location below includes them again.
+    include /etc/nginx/snippets/pinpindou-headers.conf;
+
+    # The app uses hash routes (#/crop …), so everything else is a real file.
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ =404;
     }
 
-    # Long-cache hashed static assets
-    location ~* \.(?:js|css|woff2?|png|jpe?g|gif|svg|ico)$ {
-        expires 30d;
+    # Only Vite's content-hashed build output is safe to cache forever.
+    location /assets/ {
+        include /etc/nginx/snippets/pinpindou-headers.conf;
+        expires 1y;
         add_header Cache-Control "public, immutable";
         access_log off;
     }
@@ -88,6 +97,15 @@ server {
     gzip_types text/css application/javascript image/svg+xml application/json;
     gzip_min_length 1024;
 }
+```
+
+And the headers snippet at `/etc/nginx/snippets/pinpindou-headers.conf`:
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "no-referrer" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
 ```
 
 Enable the site and reload Nginx:
