@@ -9,10 +9,11 @@ export default {
         'paper-3': '#E5DCC3',
         ink: '#1A1815',
         'ink-2': '#2A2722',
-        mute: '#857F71',
+        // Text colors meet WCAG AA (4.5:1) on paper / paper-2.
+        mute: '#686255',
         rule: '#D8CFB8',
-        accent: '#E63946',
-        'accent-2': '#C9303C',
+        accent: '#C42B37',
+        'accent-2': '#A8232F',
         ok: '#2A9D8F',
       },
       fontFamily: {

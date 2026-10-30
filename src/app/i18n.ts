@@ -14,4 +14,12 @@ void i18n
     detection: { order: ['localStorage', 'navigator'], caches: ['localStorage'] },
   })
 
+// Keep <html lang> in sync so screen readers, hyphenation and :lang() CSS
+// (used to relax letter-spacing for Chinese) follow the UI language.
+function syncDocumentLang(lng: string | undefined) {
+  if (typeof document !== 'undefined' && lng) document.documentElement.lang = lng
+}
+syncDocumentLang(i18n.resolvedLanguage ?? i18n.language)
+i18n.on('languageChanged', syncDocumentLang)
+
 export default i18n

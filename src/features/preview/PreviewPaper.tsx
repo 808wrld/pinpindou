@@ -27,7 +27,7 @@ export function PreviewPaper({
         <div>
           <div className="font-display text-lg leading-tight">{title}</div>
           {subtitle && (
-            <div className="font-mono text-[10px] uppercase tracking-label text-mute mt-0.5">
+            <div className="font-mono text-[11px] uppercase tracking-label text-mute mt-0.5">
               {subtitle}
             </div>
           )}
@@ -59,7 +59,7 @@ export function ToggleGroup<T extends string>({
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
-          className={`font-mono text-[10px] uppercase tracking-label px-3 py-1.5 ${
+          className={`font-mono text-[11px] uppercase tracking-label px-3 py-1.5 ${
             value === o.value ? 'bg-ink text-paper' : 'text-mute hover:text-ink'
           }`}
         >

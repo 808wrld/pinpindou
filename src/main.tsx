@@ -1,8 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
+import { loadWebFonts } from './app/fonts'
 import './app/i18n'
 import App from './app/App'
+
+loadWebFonts()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

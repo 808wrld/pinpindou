@@ -26,7 +26,16 @@ function ErrorFallback({ message }: { message?: string }) {
       {message && <pre className="text-sm text-slate-500">{message}</pre>}
       <div className="flex gap-2">
         <button
-          onClick={() => { localStorage.clear(); location.reload() }}
+          onClick={() => {
+            // Only drop this app's saved settings: localStorage is shared by
+            // everything served from the same origin.
+            try {
+              localStorage.removeItem('pinpindou-v2')
+            } catch {
+              /* storage unavailable */
+            }
+            location.reload()
+          }}
           className="rounded bg-slate-900 px-4 py-2 text-sm text-white"
         >
           {t('error.boundary.action')}

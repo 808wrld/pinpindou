@@ -10,9 +10,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const step = useAppStore((s) => s.step)
   const image = useAppStore((s) => s.image)
+  const hasCells = useAppStore((s) => s.cells !== null)
+  const generating = useAppStore((s) => s.generating)
   const reset = useAppStore((s) => s.reset)
   const stepIdx = STEPS.indexOf(step)
   const isZh = i18n.language.startsWith('zh')
+  // On the tune step, wait until the pattern for the current settings is ready.
+  const nextDisabled = stepIdx >= 3 || !image || (step === 'tune' && (!hasCells || generating))
 
   return (
     <div className="relative flex min-h-screen flex-col">
@@ -44,27 +48,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <h1 className="font-display text-[28px] md:text-[32px] leading-none tracking-tight text-ink">
                 拼<span className="text-accent">拼</span>豆
               </h1>
-              <p className="font-mono text-[9px] uppercase tracking-[0.42em] text-mute mt-2 ml-px">
+              <p className="font-mono text-[11px] uppercase tracking-[0.42em] text-mute mt-2 ml-px">
                 pinpindou
               </p>
             </div>
           </a>
           <div className="flex items-center gap-5">
             <button
+              type="button"
               onClick={() => i18n.changeLanguage(isZh ? 'en' : 'zh-CN')}
+              aria-label={t('lang.toggle')}
               className="font-mono text-xs uppercase tracking-label"
             >
               <span className={isZh ? 'text-accent' : 'text-mute'}>中</span>
-              <span className="text-mute mx-1.5">/</span>
+              <span className="text-mute mx-1.5" aria-hidden>/</span>
               <span className={!isZh ? 'text-accent' : 'text-mute'}>EN</span>
             </button>
             {image && (
               <button
+                type="button"
                 onClick={() => {
                   reset()
                   go('upload')
                 }}
-                className="font-mono text-[10px] uppercase tracking-label text-mute hover:text-ink"
+                className="font-mono text-[11px] uppercase tracking-label text-mute hover:text-ink"
               >
                 ↻ {t('nav.reset')}
               </button>
@@ -82,8 +89,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             return (
               <div key={s} className="flex items-end gap-3 md:gap-8">
                 <button
+                  type="button"
                   onClick={() => reachable && go(s)}
                   disabled={!reachable}
+                  aria-current={active ? 'step' : undefined}
                   className="group flex flex-col items-center text-center disabled:cursor-not-allowed"
                 >
                   <span
@@ -95,7 +104,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                     {String(i + 1).padStart(2, '0')}
                   </span>
                   <span
-                    className={`mt-2 font-mono text-[10px] uppercase tracking-label ${
+                    className={`mt-2 font-mono text-[11px] uppercase tracking-label ${
                       active ? 'text-ink' : 'text-mute'
                     }`}
                   >
@@ -125,6 +134,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <footer className="border-t border-ink px-6 py-4 md:px-12">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <button
+            type="button"
             onClick={() => stepIdx > 0 && go(STEPS[stepIdx - 1])}
             disabled={stepIdx <= 0}
             className="font-mono text-xs uppercase tracking-label flex items-center gap-2 disabled:opacity-30"
@@ -132,14 +142,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span>←</span>
             {t('nav.back')}
           </button>
-          <span className="font-mono text-[10px] uppercase tracking-label text-mute">
-            {isZh
-              ? `第 ${stepIdx + 1} 步 / 共 4 步`
-              : `STEP ${String(stepIdx + 1).padStart(2, '0')} / 04`}
+          <span className="font-mono text-[11px] uppercase tracking-label text-mute">
+            {t('nav.stepOf', { n: stepIdx + 1, nPadded: String(stepIdx + 1).padStart(2, '0') })}
           </span>
           <button
+            type="button"
             onClick={() => stepIdx < 3 && go(STEPS[stepIdx + 1])}
-            disabled={stepIdx >= 3 || !image}
+            disabled={nextDisabled}
             className="font-mono text-xs uppercase tracking-label flex items-center gap-2 px-4 py-2 bg-accent text-paper border border-ink disabled:opacity-30 disabled:bg-paper disabled:text-mute hover:bg-accent-2"
           >
             {t('nav.next')}

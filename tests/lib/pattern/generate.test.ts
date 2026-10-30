@@ -235,4 +235,28 @@ describe('generatePattern · 2-pass color cap', () => {
     })
     expect('error' in res && res.error).toBe('pass2 fail')
   })
+
+  it('reuses the preprocess result when only quantize settings change', async () => {
+    const { runPreprocess } = await import('@/lib/workers/runPreprocess')
+    const { runQuantize } = await import('@/lib/workers/runQuantize')
+    const { generatePattern } = await import('@/lib/pattern/generate')
+
+    vi.mocked(runPreprocess).mockResolvedValue({
+      type: 'preprocess:result',
+      id: 1,
+      pixels: new Uint8ClampedArray(64),
+      w: 4,
+      h: 4,
+    })
+    vi.mocked(runQuantize).mockResolvedValue({ type: 'quantize:result', id: 1, cells: [[0]] })
+
+    const palette = mkPalette(['#000', '#F00', '#0F0', '#00F'])
+    await generatePattern({ ...BASE_ARGS, palette, colorCap: null })
+    await generatePattern({ ...BASE_ARGS, palette, colorCap: null, ditherMode: 'ordered-4x4' })
+    expect(vi.mocked(runPreprocess)).toHaveBeenCalledTimes(1)
+
+    // A different crop must run preprocess again.
+    await generatePattern({ ...BASE_ARGS, palette, colorCap: null, crop: { x: 0, y: 0, w: 2, h: 2 } })
+    expect(vi.mocked(runPreprocess)).toHaveBeenCalledTimes(2)
+  })
 })
