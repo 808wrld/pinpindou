@@ -87,8 +87,7 @@ server {
     # Only Vite's content-hashed build output is safe to cache forever.
     location /assets/ {
         include /etc/nginx/snippets/pinpindou-headers.conf;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
         access_log off;
     }
 

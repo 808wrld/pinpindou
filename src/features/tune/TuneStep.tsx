@@ -50,8 +50,10 @@ export function TuneStep() {
   const setTune = useAppStore((s) => s.setTune)
   const setCells = useAppStore((s) => s.setCells)
   const cells = useAppStore((s) => s.cells)
+  const cellsPaletteId = useAppStore((s) => s.cellsPaletteId)
+  const generating = useAppStore((s) => s.generating)
+  const setGenerating = useAppStore((s) => s.setGenerating)
   const [palette, setPalette] = useState<Palette | null>(null)
-  const [busy, setBusy] = useState(false)
   const [renderMode, setRenderMode] = useState<RenderMode>('symbols')
   const [errMsg, setErrMsg] = useState<string | null>(null)
   const timer = useRef<number | null>(null)
@@ -70,10 +72,15 @@ export function TuneStep() {
 
   useEffect(() => {
     if (!image || !crop || !palette) return
+    // Invalidate any run for older inputs, whether scheduled or in flight.
     const id = ++generation.current
     if (timer.current) window.clearTimeout(timer.current)
+    setGenerating(true)
+    // tune.paletteId changes before the matching palette has loaded: wait for
+    // it (this effect re-runs when it arrives) instead of generating with the
+    // previous palette.
+    if (palette.id !== tune.paletteId) return
     timer.current = window.setTimeout(async () => {
-      setBusy(true)
       try {
         const res = await generatePattern({
           imageDataUrl: image.dataUrl,
@@ -90,7 +97,7 @@ export function TuneStep() {
         })
         if (id !== generation.current) return
         if ('cells' in res) {
-          setCells(res.cells)
+          setCells(res.cells, tune.paletteId)
           setErrMsg(null)
         } else {
           // I3: don't leave stale cells on top of new failing settings — clear and surface
@@ -104,7 +111,7 @@ export function TuneStep() {
         setErrMsg(err instanceof Error ? err.message : String(err))
         console.error('Pattern generation failed:', err)
       } finally {
-        if (id === generation.current) setBusy(false)
+        if (id === generation.current) setGenerating(false)
       }
     }, 200)
     return () => {
@@ -125,6 +132,9 @@ export function TuneStep() {
 
   if (!image || !crop) return null
 
+  // Only draw cells with the palette they were generated for; right after a
+  // palette switch the old cells would show the wrong colors and bead codes.
+  const showPattern = cells !== null && palette !== null && cellsPaletteId === palette.id
   const beads = dims.w * dims.h
   const paletteSize = palette?.colors.length ?? 30
   const cap = tune.colorCap ?? paletteSize
@@ -274,7 +284,7 @@ export function TuneStep() {
             />
           }
         >
-          {cells && palette ? (
+          {showPattern ? (
             <div className="border-[2px] border-ink overflow-hidden inline-block max-w-full">
               <PatternCanvas
                 cells={cells}
@@ -290,12 +300,12 @@ export function TuneStep() {
               className="h-64 flex items-center justify-center text-mute font-mono text-xs uppercase tracking-label"
               role="status"
             >
-              {errMsg ? `✕ ${errMsg}` : busy ? t('tune.generating') : t('tune.waiting')}
+              {errMsg ? `✕ ${errMsg}` : generating ? t('tune.generating') : t('tune.waiting')}
             </div>
           )}
         </PreviewPaper>
 
-        {cells && palette && <BomTable cells={cells} palette={palette} symbolMap={symbolMap} />}
+        {showPattern && <BomTable cells={cells} palette={palette} symbolMap={symbolMap} />}
       </div>
     </div>
   )

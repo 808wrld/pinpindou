@@ -4,6 +4,7 @@ import type { CropAspectId } from '@/lib/image/crop'
 
 export type Step = 'upload' | 'crop' | 'tune' | 'export'
 export type DitherMode = 'none' | 'floyd-steinberg' | 'ordered-4x4'
+export type PaletteId = 'manyoujiang' | 'perler' | 'hama'
 
 export type AppState = {
   step: Step
@@ -16,11 +17,16 @@ export type AppState = {
     // aspect ratio (see patternDims); targetH mirrors targetW for old saves.
     targetW: number
     targetH: number
-    paletteId: 'manyoujiang' | 'perler' | 'hama'
+    paletteId: PaletteId
     dither: DitherMode
     colorCap: number | null
   }
   cells: number[][] | null
+  // Palette the cells index into. tune.paletteId can change before the new
+  // pattern is ready, so the two must not be assumed to match.
+  cellsPaletteId: PaletteId | null
+  // True from the moment tune inputs change until the matching pattern is ready.
+  generating: boolean
 }
 
 export type AppActions = {
@@ -31,7 +37,8 @@ export type AppActions = {
   setBrightness: (v: number) => void
   setContrast: (v: number) => void
   setTune: (patch: Partial<AppState['tune']>) => void
-  setCells: (c: number[][] | null) => void
+  setCells: (c: number[][] | null, paletteId?: PaletteId | null) => void
+  setGenerating: (g: boolean) => void
   reset: () => void
 }
 
@@ -54,6 +61,8 @@ export function defaultState(): AppState {
       colorCap: 16,
     },
     cells: null,
+    cellsPaletteId: null,
+    generating: false,
   }
 }
 
@@ -68,7 +77,9 @@ export const useAppStore = create<AppState & AppActions>()(
       setBrightness: (v) => set((s) => ({ preprocess: { ...s.preprocess, brightness: v } })),
       setContrast: (v) => set((s) => ({ preprocess: { ...s.preprocess, contrast: v } })),
       setTune: (patch) => set((s) => ({ tune: { ...s.tune, ...patch } })),
-      setCells: (cells) => set({ cells }),
+      setCells: (cells, paletteId = null) =>
+        set({ cells, cellsPaletteId: cells ? paletteId : null }),
+      setGenerating: (generating) => set({ generating }),
       reset: () => set(defaultState()),
     }),
     {

@@ -28,6 +28,9 @@ export function ExportStep() {
   const cells = useAppStore((s) => s.cells)
   const tune = useAppStore((s) => s.tune)
   const image = useAppStore((s) => s.image)
+  // Use the palette the cells were generated with, which can differ from
+  // tune.paletteId if the palette was switched just before leaving Tune.
+  const paletteId = useAppStore((s) => s.cellsPaletteId) ?? tune.paletteId
   const [palette, setPalette] = useState<Palette | null>(null)
   const [renderMode, setRenderMode] = useState<RenderMode>('symbols')
   const [sourceView, setSourceView] = useState<SourceView>('pattern')
@@ -37,8 +40,8 @@ export function ExportStep() {
   const isZh = lang === 'zh-CN'
 
   useEffect(() => {
-    void loadPalette(tune.paletteId).then(setPalette)
-  }, [tune.paletteId])
+    void loadPalette(paletteId).then(setPalette)
+  }, [paletteId])
 
   const symbolMap = useMemo(
     () => (cells ? buildSymbolMap(cells) : new Map<number, string>()),
@@ -63,14 +66,14 @@ export function ExportStep() {
       </div>
     )
   }
-  if (!palette) return null
+  if (!palette || palette.id !== paletteId) return null
 
   // The grid size is whatever was generated (the short side follows the crop).
   const gridW = cells[0].length
   const gridH = cells.length
   const { total } = computeBomWithTotal(cells)
   const dLabel = ditherLabel(tune.dither, isZh)
-  const paletteLabel = PALETTE_LABELS[tune.paletteId][lang]
+  const paletteLabel = PALETTE_LABELS[paletteId][lang]
   const colorsUsed = symbolMap.size
   const modeLabel =
     sourceView === 'original'

@@ -5,8 +5,9 @@ const VIEWPORT_GAP = 8
 /**
  * Small ⓘ glyph that reveals a popover on hover or focus. The popover is
  * positioned above the glyph by default, flips below if it would be clipped
- * at the top (viewport or the scrolling <main>), and is shifted sideways so it never runs off the
- * left / right edge (the tune controls sit at the screen edge on phones).
+ * at the top (viewport or the scrolling <main>), and is shifted sideways so
+ * it never runs off the left / right edge (the tune controls sit at the
+ * screen edge on phones).
  */
 export function InfoTip({ children, label = 'info' }: { children: ReactNode; label?: string }) {
   const [open, setOpen] = useState(false)

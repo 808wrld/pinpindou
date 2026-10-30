@@ -11,11 +11,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const step = useAppStore((s) => s.step)
   const image = useAppStore((s) => s.image)
   const hasCells = useAppStore((s) => s.cells !== null)
+  const generating = useAppStore((s) => s.generating)
   const reset = useAppStore((s) => s.reset)
   const stepIdx = STEPS.indexOf(step)
   const isZh = i18n.language.startsWith('zh')
-  // On the tune step, wait until a pattern exists before allowing export.
-  const nextDisabled = stepIdx >= 3 || !image || (step === 'tune' && !hasCells)
+  // On the tune step, wait until the pattern for the current settings is ready.
+  const nextDisabled = stepIdx >= 3 || !image || (step === 'tune' && (!hasCells || generating))
 
   return (
     <div className="relative flex min-h-screen flex-col">
