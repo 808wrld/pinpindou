@@ -85,7 +85,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="mx-auto flex max-w-6xl items-end justify-center gap-3 md:gap-8">
           {STEPS.map((s, i) => {
             const active = i === stepIdx
-            const reachable = !!image || s === 'upload'
+            // Export needs a finished pattern for the current settings, exactly
+            // like the Next button: the step indicator must not be a way around it.
+            const reachable =
+              s === 'upload' || (!!image && (s !== 'export' || (hasCells && !generating)))
             return (
               <div key={s} className="flex items-end gap-3 md:gap-8">
                 <button
