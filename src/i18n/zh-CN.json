@@ -107,5 +107,6 @@
   "export.busy": "正在生成…",
   "export.error": "导出失败：{{message}}",
   "export.empty": "还没有生成图纸。请回到调参页，等预览生成完成。",
-  "export.backToTune": "回到调参"
+  "export.backToTune": "回到调参",
+  "tune.paletteError": "调色板加载失败，请检查网络后刷新页面。"
 }

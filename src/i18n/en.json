@@ -107,5 +107,6 @@
   "export.busy": "Preparing…",
   "export.error": "Export failed: {{message}}",
   "export.empty": "No pattern yet. Go back to Tune and wait for the preview to finish.",
-  "export.backToTune": "Back to Tune"
+  "export.backToTune": "Back to Tune",
+  "tune.paletteError": "Could not load the palette. Check your connection and reload the page."
 }

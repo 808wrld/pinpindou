@@ -67,8 +67,43 @@ export function TuneStep() {
   const dims = patternDims(tune.targetW, crop ?? { w: 1, h: 1 })
 
   useEffect(() => {
-    void loadPalette(tune.paletteId).then(setPalette)
+    // Ignore loads that finish after a newer palette was selected: palettes
+    // are separate chunks and can arrive out of order, and a stale one would
+    // leave generation waiting forever for the selected palette.
+    let cancelled = false
+    loadPalette(tune.paletteId).then(
+      (p) => {
+        if (!cancelled) setPalette(p)
+      },
+      (err: unknown) => {
+        if (cancelled) return
+        console.error('Palette failed to load:', err)
+        generation.current++
+        setCells(null)
+        setErrMsg(t('tune.paletteError'))
+        setGenerating(false)
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tune.paletteId])
+
+  // Leaving the step while a pattern is still pending (debounced or in
+  // flight): the cells on screen belong to older settings, so drop them
+  // rather than let another step use them.
+  useEffect(
+    () => () => {
+      if (useAppStore.getState().generating) {
+        generation.current++
+        setCells(null)
+        setGenerating(false)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   useEffect(() => {
     if (!image || !crop || !palette) return

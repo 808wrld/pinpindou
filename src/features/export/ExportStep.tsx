@@ -36,11 +36,25 @@ export function ExportStep() {
   const [sourceView, setSourceView] = useState<SourceView>('pattern')
   const [exporting, setExporting] = useState<ExportKind | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [paletteFailed, setPaletteFailed] = useState(false)
   const lang: 'zh-CN' | 'en' = i18n.language.startsWith('zh') ? 'zh-CN' : 'en'
   const isZh = lang === 'zh-CN'
 
   useEffect(() => {
-    void loadPalette(paletteId).then(setPalette)
+    let cancelled = false
+    loadPalette(paletteId).then(
+      (p) => {
+        if (!cancelled) setPalette(p)
+      },
+      (err: unknown) => {
+        if (cancelled) return
+        console.error('Palette failed to load:', err)
+        setPaletteFailed(true)
+      },
+    )
+    return () => {
+      cancelled = true
+    }
   }, [paletteId])
 
   const symbolMap = useMemo(
@@ -64,6 +78,13 @@ export function ExportStep() {
           ← {t('export.backToTune')}
         </button>
       </div>
+    )
+  }
+  if (paletteFailed) {
+    return (
+      <p role="alert" className="py-20 text-center font-mono text-xs text-accent">
+        ✕ {t('tune.paletteError')}
+      </p>
     )
   }
   if (!palette || palette.id !== paletteId) return null

@@ -66,16 +66,37 @@ export function defaultState(): AppState {
   }
 }
 
+// The pattern is derived from the image, the crop and the brightness /
+// contrast settings. Whenever one of them changes, the existing cells no
+// longer match and are dropped, so no screen can show or export a pattern
+// that belongs to an earlier image or crop.
+const NO_PATTERN = { cells: null, cellsPaletteId: null, generating: false } as const
+
+function sameCrop(a: AppState['crop'], b: AppState['crop']): boolean {
+  if (a === null || b === null) return a === b
+  return a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+}
+
 export const useAppStore = create<AppState & AppActions>()(
   persist(
     (set) => ({
       ...defaultState(),
       setStep: (step) => set({ step }),
-      setImage: (image) => set({ image }),
-      setCrop: (crop) => set({ crop }),
+      setImage: (image) => set({ image, ...NO_PATTERN }),
+      setCrop: (crop) => set((s) => (sameCrop(s.crop, crop) ? { crop } : { crop, ...NO_PATTERN })),
       setCropAspect: (cropAspect) => set({ cropAspect }),
-      setBrightness: (v) => set((s) => ({ preprocess: { ...s.preprocess, brightness: v } })),
-      setContrast: (v) => set((s) => ({ preprocess: { ...s.preprocess, contrast: v } })),
+      setBrightness: (v) =>
+        set((s) =>
+          s.preprocess.brightness === v
+            ? {}
+            : { preprocess: { ...s.preprocess, brightness: v }, ...NO_PATTERN },
+        ),
+      setContrast: (v) =>
+        set((s) =>
+          s.preprocess.contrast === v
+            ? {}
+            : { preprocess: { ...s.preprocess, contrast: v }, ...NO_PATTERN },
+        ),
       setTune: (patch) => set((s) => ({ tune: { ...s.tune, ...patch } })),
       setCells: (cells, paletteId = null) =>
         set({ cells, cellsPaletteId: cells ? paletteId : null }),
